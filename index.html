@@ -5,33 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Wikipedia Link Path Game</title>
     <style>
-      :root {
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-        color-scheme: light dark;
-      }
+      :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color-scheme: light dark; }
       body { margin: 0; padding: 0; }
       .wrap { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
-      header {
-        padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,.1);
-        display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end;
-      }
-      form { display: grid; grid-template-columns: 1.5fr 1.5fr auto; gap: 8px; }
+      header { padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,.1); display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+      form { display: grid; grid-template-columns: 1.3fr 1.3fr auto; gap: 8px; }
       label { font-size: 12px; opacity: .8; display: block; margin-bottom: 4px; }
-      input[type="url"], input[type="text"] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,.2); }
+      input[type="url"] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,.2); }
       button { padding: 10px 14px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 600; }
       button.primary { background: #2b6fff; color: white; }
       button.secondary { background: #eee; }
-      main { display: grid; grid-template-columns: 2fr 1fr; gap: 0; min-height: 0; }
-      .articlePane {
-        border-right: 1px solid rgba(0,0,0,.1);
-        min-height: 0; display: grid; grid-template-rows: auto 1fr; 
-      }
-      .hud { padding: 10px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid rgba(0,0,0,.06); }
+      button.share { background: #34c759; color: white; }
+      button.warn { background: #ff9f0a; color: black; }
+      main { display: grid; grid-template-columns: 2fr 1fr; min-height: 0; }
+      .articlePane { border-right: 1px solid rgba(0,0,0,.1); min-height: 0; display: grid; grid-template-rows: auto 1fr; }
+      .hud { padding: 10px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid rgba(0,0,0,.06); flex-wrap: wrap; }
       .badge { display: inline-flex; align-items: center; justify-content: center; padding: 6px 10px; border-radius: 999px; background: #f2f4f8; font-weight: 700; }
-      .status { font-size: 14px; opacity: .8; }
+      .status { font-size: 14px; opacity: .9; }
+      .timer { font-variant-numeric: tabular-nums; }
+      .controls { margin-left: auto; display: flex; gap: 8px; }
       .frame { overflow: auto; padding: 16px; }
       .frame > .article { max-width: 900px; margin: 0 auto; line-height: 1.5; }
-      .sidebar { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+      .sidebar { display: grid; grid-template-rows: auto auto auto 1fr; min-height: 0; }
       .panel { padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,.06); }
       .list { overflow: auto; padding: 12px 16px; }
       .list ol { margin: 0; padding: 0 0 0 20px; }
@@ -60,9 +55,7 @@
             <button class="secondary" id="reset" type="button">Reset</button>
           </div>
         </form>
-        <div class="note">
-          Uses the official Wikipedia API to render pages in place so clicks can be counted and the path can be tracked.
-        </div>
+        <div class="note">Paste two Wikipedia links and start. Timer runs during play. You can undo the last step, restart the challenge, share a link that auto fills the form, and copy the path text.</div>
       </header>
 
       <main>
@@ -70,6 +63,11 @@
           <div class="hud">
             <div class="badge" id="clickCount">0</div>
             <div class="status"><span class="muted">Current</span> <span id="currentTitle">None</span></div>
+            <div class="status">Time <span class="timer" id="timer">00:00</span></div>
+            <div class="controls">
+              <button id="undoBtn" class="secondary" title="Undo last step">Undo</button>
+              <button id="restartBtn" class="warn" title="Restart challenge">Restart</button>
+            </div>
           </div>
           <div class="frame" id="frame">
             <div class="article" id="article">
@@ -87,6 +85,10 @@
             <div id="goalTo" class="inline"></div>
           </div>
           <div class="panel" id="msg"></div>
+          <div class="panel" style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="shareResultsBtn" class="share">Copy path text</button>
+            <button id="shareLinkBtn" class="primary">Copy share link</button>
+          </div>
           <div class="list">
             <div><strong>Steps</strong></div>
             <ol id="steps"></ol>
@@ -96,11 +98,6 @@
     </div>
 
     <script>
-      // Wikipedia Link Path Game
-      // Single file app
-      // Rendering uses the MediaWiki Action API parse module and injects the returned HTML
-      // This keeps everything same origin so clicks can be counted
-
       const W_API = "https://en.wikipedia.org/w/api.php";
 
       const els = {
@@ -109,14 +106,18 @@
         targetUrl: document.getElementById('targetUrl'),
         begin: document.getElementById('begin'),
         reset: document.getElementById('reset'),
-        frame: document.getElementById('frame'),
         article: document.getElementById('article'),
         steps: document.getElementById('steps'),
         clickCount: document.getElementById('clickCount'),
         currentTitle: document.getElementById('currentTitle'),
         goalFrom: document.getElementById('goalFrom'),
         goalTo: document.getElementById('goalTo'),
-        msg: document.getElementById('msg')
+        msg: document.getElementById('msg'),
+        timer: document.getElementById('timer'),
+        undoBtn: document.getElementById('undoBtn'),
+        restartBtn: document.getElementById('restartBtn'),
+        shareResultsBtn: document.getElementById('shareResultsBtn'),
+        shareLinkBtn: document.getElementById('shareLinkBtn')
       };
 
       let state = {
@@ -125,7 +126,9 @@
         targetTitle: null,
         currentTitle: null,
         count: 0,
-        path: [] // array of { title, url }
+        path: [],
+        startTime: null,
+        timerId: null
       };
 
       function wikiTitleFromUrl(url) {
@@ -138,7 +141,7 @@
               return decodeURIComponent(parts.slice(idx+1).join('/'));
             }
           }
-        } catch { /* ignore */ }
+        } catch {}
         return null;
       }
 
@@ -159,17 +162,34 @@
       }
 
       function resetGame() {
-        state = { playing: false, originTitle: null, targetTitle: null, currentTitle: null, count: 0, path: [] };
+        stopTimer();
+        state = { playing: false, originTitle: state.originTitle, targetTitle: state.targetTitle, currentTitle: null, count: 0, path: [], startTime: null, timerId: null };
         els.clickCount.textContent = '0';
         els.steps.innerHTML = '';
         els.article.innerHTML = '<p class="muted">Enter two Wikipedia links above and press Start game.</p>';
         els.currentTitle.textContent = 'None';
-        els.goalFrom.textContent = '';
-        els.goalTo.textContent = '';
+        els.timer.textContent = '00:00';
         setMessage('');
       }
 
-      async function loadArticle(title, increment = false) {
+      function startTimer() {
+        state.startTime = Date.now();
+        state.timerId = setInterval(() => {
+          const s = Math.floor((Date.now() - state.startTime) / 1000);
+          const mm = String(Math.floor(s / 60)).padStart(2,'0');
+          const ss = String(s % 60).padStart(2,'0');
+          els.timer.textContent = `${mm}:${ss}`;
+        }, 250);
+      }
+
+      function stopTimer() {
+        if (state.timerId) {
+          clearInterval(state.timerId);
+          state.timerId = null;
+        }
+      }
+
+      async function loadArticle(title, increment = false, pushIfFirst = true) {
         const norm = normalizeTitle(title);
         const url = `${W_API}?action=parse&format=json&origin=*&prop=text&page=${encodeURIComponent(norm)}`;
         try {
@@ -187,18 +207,15 @@
 
           const base = new URL('https://en.wikipedia.org');
           els.article.querySelectorAll('a[href]').forEach(a => {
-            try {
-              const href = a.getAttribute('href');
-              if (!href) return;
-              if (href.startsWith('/wiki/')) {
-                a.setAttribute('data-wiki-title', decodeURIComponent(href.replace(/^\/wiki\//, '')));
-              } else if (href.startsWith('#')) {
-                // allow in page anchors
-              } else {
-                a.setAttribute('target', '_blank');
-                a.setAttribute('rel', 'noopener');
-              }
-            } catch {}
+            const href = a.getAttribute('href');
+            if (!href) return;
+            if (href.startsWith('/wiki/')) {
+              a.setAttribute('data-wiki-title', decodeURIComponent(href.replace(/^\/wiki\//, '')));
+            } else if (href.startsWith('#')) {
+            } else {
+              a.setAttribute('target', '_blank');
+              a.setAttribute('rel', 'noopener');
+            }
           });
           els.article.querySelectorAll('img[src]').forEach(img => {
             try {
@@ -208,60 +225,58 @@
             } catch {}
           });
 
-          if (!increment && state.path.length === 0) {
+          if (!increment && pushIfFirst && state.path.length === 0) {
             state.path.push({ title: pageTitle, url: wikiUrlFromTitle(pageTitle) });
             renderPath();
           }
 
           if (state.playing && normalizeTitle(pageTitle) === normalizeTitle(state.targetTitle)) {
-            setMessage(`<div class="win"><strong>You made it</strong> in ${state.count} clicks.</div>`);
+            setMessage(`<div class="win"><strong>You made it</strong> in ${state.count} clicks and ${els.timer.textContent} time.</div>`);
+            stopTimer();
             state.playing = false;
           } else if (state.playing) {
             setMessage('');
           }
         } catch (err) {
-          console.error(err);
           setMessage(`<div class="err">Could not load article. Please check the title and try again.</div>`);
         }
       }
 
       function renderPath() {
         els.steps.innerHTML = '';
-        state.path.forEach((step, i) => {
+        state.path.forEach(step => {
           const li = document.createElement('li');
           const a = document.createElement('a');
-          a.href = step.url;
-          a.textContent = step.title;
-          a.target = '_blank';
-          a.rel = 'noopener';
+          a.href = step.url; a.textContent = step.title; a.target = '_blank'; a.rel = 'noopener';
           li.appendChild(a);
           els.steps.appendChild(li);
         });
         els.clickCount.textContent = String(state.count);
       }
 
+      async function startGameByTitles(startTitle, targetTitle) {
+        resetGame();
+        state.originTitle = startTitle;
+        state.targetTitle = targetTitle;
+        state.playing = true;
+        els.goalFrom.textContent = normalizeTitle(startTitle);
+        els.goalTo.textContent = normalizeTitle(targetTitle);
+        startTimer();
+        await loadArticle(startTitle, false, true);
+      }
+
       els.article.addEventListener('click', async (e) => {
         const a = e.target.closest('a');
         if (!a) return;
-        const within = els.article.contains(a);
-        if (!within) return;
-
-        const wikiTitle = a.getAttribute('data-wiki-title');
-        if (wikiTitle) {
+        const t = a.getAttribute('data-wiki-title');
+        if (t) {
           e.preventDefault();
           if (!state.playing) return;
           state.count += 1;
-          const nextTitle = decodeURIComponent(wikiTitle);
+          const nextTitle = decodeURIComponent(t);
           state.path.push({ title: normalizeTitle(nextTitle), url: wikiUrlFromTitle(nextTitle) });
           renderPath();
-          await loadArticle(nextTitle, true);
-        } else if (a.getAttribute('href')?.startsWith('#')) {
-          // allow in page anchors
-        } else {
-          if (state.playing) {
-            e.preventDefault();
-            setMessage('<div class="err">Only article links are allowed while playing.</div>');
-          }
+          await loadArticle(nextTitle, true, false);
         }
       });
 
@@ -273,21 +288,60 @@
           setMessage('<div class="err">Please enter valid Wikipedia article links that contain /wiki/ in the path.</div>');
           return;
         }
-        resetGame();
-        state.originTitle = startTitle;
-        state.targetTitle = targetTitle;
-        state.playing = true;
-        els.goalFrom.textContent = normalizeTitle(startTitle);
-        els.goalTo.textContent = normalizeTitle(targetTitle);
-        await loadArticle(startTitle);
+        await startGameByTitles(startTitle, targetTitle);
       });
 
-      els.reset.addEventListener('click', () => {
-        resetGame();
+      els.reset.addEventListener('click', () => { resetGame(); });
+
+      els.undoBtn.addEventListener('click', async () => {
+        if (!state.playing || state.path.length <= 1) return;
+        state.path.pop();
+        state.count = Math.max(0, state.count - 1);
+        const last = state.path[state.path.length - 1];
+        renderPath();
+        await loadArticle(last.title, false, false);
       });
 
+      els.restartBtn.addEventListener('click', async () => {
+        if (!state.originTitle || !state.targetTitle) return;
+        await startGameByTitles(state.originTitle, state.targetTitle);
+      });
+
+      els.shareResultsBtn.addEventListener('click', () => {
+        if (!state.path.length) { setMessage('<div class="err">No results to copy yet.</div>'); return; }
+        const text = `Wikipedia Link Path Game Result\n\nFrom: ${normalizeTitle(state.originTitle)}\nTo: ${normalizeTitle(state.targetTitle)}\nClicks: ${state.count}\nTime: ${els.timer.textContent}\n\nPath:\n${state.path.map((s,i)=>`${i+1}. ${s.title} -> ${s.url}`).join('\n')}`;
+        navigator.clipboard.writeText(text).then(() => {
+          setMessage('<div class="win">Copied path text to clipboard.</div>');
+        }).catch(() => { setMessage('<div class="err">Clipboard copy failed.</div>'); });
+      });
+
+      els.shareLinkBtn.addEventListener('click', () => {
+        const startTitle = state.originTitle || wikiTitleFromUrl(els.startUrl.value);
+        const targetTitle = state.targetTitle || wikiTitleFromUrl(els.targetUrl.value);
+        if (!startTitle || !targetTitle) { setMessage('<div class="err">Provide start and target first.</div>'); return; }
+        const url = new URL(location.href);
+        url.searchParams.set('start', startTitle);
+        url.searchParams.set('target', targetTitle);
+        navigator.clipboard.writeText(url.toString()).then(() => {
+          setMessage('<div class="win">Copied share link to clipboard.</div>');
+        }).catch(() => { setMessage('<div class="err">Clipboard copy failed.</div>'); });
+      });
+
+      function tryAutoStartFromQuery() {
+        const params = new URLSearchParams(location.search);
+        const startQ = params.get('start');
+        const targetQ = params.get('target');
+        if (startQ && targetQ) {
+          els.startUrl.value = `https://en.wikipedia.org/wiki/${encodeURIComponent(startQ)}`;
+          els.targetUrl.value = `https://en.wikipedia.org/wiki/${encodeURIComponent(targetQ)}`;
+          startGameByTitles(startQ, targetQ);
+        }
+      }
+
+      // defaults for quick play
       els.startUrl.value = 'https://en.wikipedia.org/wiki/Cat';
       els.targetUrl.value = 'https://en.wikipedia.org/wiki/Quantum_mechanics';
+      tryAutoStartFromQuery();
     </script>
   </body>
 </html>
