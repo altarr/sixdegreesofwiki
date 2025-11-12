@@ -14,19 +14,23 @@
         --warn: #ff9f0a;
         --border: rgba(0,0,0,.1);
         --border-soft: rgba(0,0,0,.06);
+        --bg-soft: color-mix(in srgb, Canvas 92%, transparent);
       }
       * { box-sizing: border-box; }
-      body { margin: 0; padding: 0; }
+      html, body { height: 100%; }
+      body { margin: 0; padding: 0; background: Canvas; color: CanvasText; }
+
       .wrap { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
 
       header {
-        position: sticky; top: 0; z-index: 5;
-        padding: 16px clamp(14px, 3vw, 20px);
+        position: sticky; top: 0; z-index: 10;
+        padding: 16px clamp(14px, 3vw, 22px);
         border-bottom: 1px solid var(--border);
         backdrop-filter: blur(6px);
-        background: color-mix(in srgb, Canvas 88%, transparent);
+        background: var(--bg-soft);
         display: flex; flex-direction: column; gap: 14px;
       }
+
       form { display: flex; flex-direction: column; gap: 12px; }
       .form-group { display: flex; flex-direction: column; gap: 6px; }
       label { font-size: 14px; opacity: .85; }
@@ -54,23 +58,23 @@
       button.warn { background: var(--warn); color: #000; }
       #randomStart, #randomTarget { background: var(--blue) !important; color: #fff !important; }
 
-      .buttons { display: flex; gap: 10px; }
+      .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
       .note { font-size: 13px; opacity: .85; }
 
       main { display: grid; grid-template-columns: 2fr 1fr; min-height: 0; }
       .articlePane { border-right: 1px solid var(--border); min-height: 0; display: grid; grid-template-rows: auto 1fr; }
-      .hud { padding: 12px clamp(14px, 3vw, 20px); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-soft); flex-wrap: wrap; }
+      .hud { padding: 12px clamp(14px, 3vw, 22px); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-soft); flex-wrap: wrap; }
       .badge { display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border-radius: 999px; background: #f2f4f8; font-weight: 700; }
       .status { font-size: 15px; opacity: .9; }
       .timer { font-variant-numeric: tabular-nums; }
       .controls { margin-left: auto; display: flex; gap: 8px; }
-      .frame { overflow: auto; padding: clamp(10px, 2.5vw, 20px); }
-      .frame > .article { max-width: 900px; margin: 0 auto; line-height: 1.55; }
+      .frame { overflow: auto; padding: clamp(10px, 2.5vw, 22px); }
+      .frame > .article { max-width: 980px; margin: 0 auto; line-height: 1.55; }
       .article img { max-width: 100%; height: auto; }
 
       .sidebar { display: grid; grid-template-rows: auto auto auto 1fr; min-height: 0; }
-      .panel { padding: 12px clamp(14px, 3vw, 20px); border-bottom: 1px solid var(--border-soft); }
-      .list { overflow: auto; padding: 12px clamp(14px, 3vw, 20px); }
+      .panel { padding: 12px clamp(14px, 3vw, 22px); border-bottom: 1px solid var(--border-soft); }
+      .list { overflow: auto; padding: 12px clamp(14px, 3vw, 22px); }
       .list ol { margin: 0; padding: 0 0 0 20px; }
       .muted { opacity: .7; }
       .win { background: #e9fbe9; border: 1px solid #b6f0b6; color: #145214; padding: 10px 12px; border-radius: 10px; }
@@ -78,17 +82,48 @@
 
       details.steps { border-top: 1px solid var(--border-soft); }
       details.steps > summary {
-        list-style: none; cursor: pointer; padding: 12px clamp(14px, 3vw, 20px);
+        list-style: none; cursor: pointer; padding: 12px clamp(14px, 3vw, 22px);
         font-weight: 700;
       }
       details.steps[open] > summary { border-bottom: 1px solid var(--border-soft); }
       details.steps > summary::-webkit-details-marker { display: none; }
 
+      .sidebarDesktop { display: block; }
+
+      /* Mobile drawer */
+      .mobileDrawer {
+        display: none;
+        position: sticky;
+        top: calc(56px + 16px);
+        z-index: 6;
+        background: var(--bg-soft);
+        border-bottom: 1px solid var(--border);
+      }
+      .mobileDrawer summary {
+        list-style: none;
+        padding: 12px 16px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .mobileDrawer summary::-webkit-details-marker { display: none; }
+      .mobileDrawer .drawerBody {
+        padding: 10px 16px 14px 16px;
+        display: grid;
+        gap: 10px;
+      }
+      .drawerRow { display: grid; gap: 8px; }
+      .drawerButtons { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+      .drawerActions { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+      .drawerControls { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+      .drawerShare { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+
       @media (max-width: 900px) {
         main { grid-template-columns: 1fr; }
         .articlePane { border-right: 0; border-bottom: 1px solid var(--border); }
-      }
-      @media (max-width: 720px) {
+
         .input-row { flex-direction: column; }
         #randomStart, #randomTarget { width: 100%; }
         .buttons { flex-direction: column; }
@@ -96,6 +131,14 @@
         .controls { width: 100%; justify-content: flex-start; }
         .status { font-size: 14px; }
         .badge { padding: 6px 10px; }
+
+        .sidebarDesktop { display: none; }
+        .mobileDrawer { display: block; }
+      }
+
+      @media (min-width: 1200px) {
+        .frame > .article { max-width: 1100px; }
+        .hud { gap: 16px; }
       }
     </style>
   </head>
@@ -122,7 +165,37 @@
             <button class="secondary" id="reset" type="button">Reset</button>
           </div>
         </form>
-        <div class="note">Paste two Wikipedia links or use Random. Timer runs during play. Undo, Restart, Share link, Copy route available.</div>
+        <div class="note">Use Random or paste links. Timer during play. Undo. Restart. Share link. Copy route.</div>
+
+        <details id="mobileDrawer" class="mobileDrawer" open>
+          <summary aria-controls="drawerBody" aria-expanded="true">
+            Game controls
+            <span id="drawerChevron" aria-hidden="true">▾</span>
+          </summary>
+          <div class="drawerBody" id="drawerBody">
+            <div class="drawerRow">
+              <strong>Goal</strong>
+              <div class="muted">Navigate from <span id="goalFrom_m">None</span> to <span id="goalTo_m">None</span></div>
+            </div>
+
+            <div class="drawerButtons">
+              <button id="undoBtn_m" class="secondary">Undo</button>
+              <button id="restartBtn_m" class="warn">Restart</button>
+            </div>
+
+            <div class="drawerShare">
+              <button id="shareResultsBtn_m" class="share">Copy path text</button>
+              <button id="shareLinkBtn_m" class="primary">Copy share link</button>
+            </div>
+
+            <div class="drawerRow">
+              <details id="stepsWrap_m" open>
+                <summary><strong>Steps</strong></summary>
+                <div class="list"><ol id="steps_m"></ol></div>
+              </details>
+            </div>
+          </div>
+        </details>
       </header>
 
       <main>
@@ -141,18 +214,16 @@
           </div>
         </section>
 
-        <aside class="sidebar">
+        <aside class="sidebar sidebarDesktop">
           <div class="panel">
             <div><strong>Goal</strong></div>
             <div class="muted">Navigate from <span id="goalFrom"></span> to <span id="goalTo"></span></div>
           </div>
           <div class="panel" id="msg"></div>
-
           <div class="panel" style="display:flex; gap:8px; flex-wrap:wrap;">
             <button id="shareResultsBtn" class="share">Copy path text</button>
             <button id="shareLinkBtn" class="primary">Copy share link</button>
           </div>
-
           <details class="steps" open>
             <summary>Steps</summary>
             <div class="list">
@@ -172,20 +243,31 @@
         targetUrl: document.getElementById('targetUrl'),
         randomStart: document.getElementById('randomStart'),
         randomTarget: document.getElementById('randomTarget'),
-        begin: document.getElementById('begin'),
-        reset: document.getElementById('reset'),
+
         article: document.getElementById('article'),
         steps: document.getElementById('steps'),
+        steps_m: document.getElementById('steps_m'),
+
         clickCount: document.getElementById('clickCount'),
         currentTitle: document.getElementById('currentTitle'),
         goalFrom: document.getElementById('goalFrom'),
         goalTo: document.getElementById('goalTo'),
+        goalFrom_m: document.getElementById('goalFrom_m'),
+        goalTo_m: document.getElementById('goalTo_m'),
+
         msg: document.getElementById('msg'),
         timer: document.getElementById('timer'),
         undoBtn: document.getElementById('undoBtn'),
         restartBtn: document.getElementById('restartBtn'),
         shareResultsBtn: document.getElementById('shareResultsBtn'),
-        shareLinkBtn: document.getElementById('shareLinkBtn')
+        shareLinkBtn: document.getElementById('shareLinkBtn'),
+
+        drawer: document.getElementById('mobileDrawer'),
+        drawerChevron: document.getElementById('drawerChevron'),
+        undoBtn_m: document.getElementById('undoBtn_m'),
+        restartBtn_m: document.getElementById('restartBtn_m'),
+        shareResultsBtn_m: document.getElementById('shareResultsBtn_m'),
+        shareLinkBtn_m: document.getElementById('shareLinkBtn_m')
       };
 
       let state = {
@@ -236,12 +318,15 @@
         state = { playing: false, originTitle: keepOrigin, targetTitle: keepTarget, currentTitle: null, count: 0, path: [], startTime: null, timerId: null };
         els.clickCount.textContent = '0';
         els.steps.innerHTML = '';
+        els.steps_m.innerHTML = '';
         els.article.innerHTML = '<p class="muted">Enter two Wikipedia links above and press Start game.</p>';
         els.currentTitle.textContent = 'None';
         els.timer.textContent = '00:00';
         if (!keepTargets) {
           els.goalFrom.textContent = '';
           els.goalTo.textContent = '';
+          els.goalFrom_m.textContent = 'None';
+          els.goalTo_m.textContent = 'None';
         }
         setMessage('');
       }
@@ -318,12 +403,14 @@
 
       function renderPath() {
         els.steps.innerHTML = '';
+        els.steps_m.innerHTML = '';
         state.path.forEach(step => {
           const li = document.createElement('li');
           const a = document.createElement('a');
           a.href = step.url; a.textContent = step.title; a.target = '_blank'; a.rel = 'noopener';
           li.appendChild(a);
-          els.steps.appendChild(li);
+          els.steps.appendChild(li.cloneNode(true));
+          els.steps_m.appendChild(li);
         });
         els.clickCount.textContent = String(state.count);
       }
@@ -333,8 +420,12 @@
         state.originTitle = startTitle;
         state.targetTitle = targetTitle;
         state.playing = true;
-        els.goalFrom.textContent = normalizeTitle(startTitle);
-        els.goalTo.textContent = normalizeTitle(targetTitle);
+        const fromNorm = normalizeTitle(startTitle);
+        const toNorm = normalizeTitle(targetTitle);
+        els.goalFrom.textContent = fromNorm;
+        els.goalTo.textContent = toNorm;
+        els.goalFrom_m.textContent = fromNorm;
+        els.goalTo_m.textContent = toNorm;
         startTimer();
         await loadArticle(startTitle, false, true);
       }
@@ -367,8 +458,12 @@
         await startGameByTitles(startTitle, targetTitle);
       });
 
-      els.reset.addEventListener('click', () => { resetGame(true); });
+      function wireMirrorButtons(srcBtn, destBtn) {
+        const click = new Event('click', { bubbles: true });
+        srcBtn.addEventListener('click', () => destBtn.dispatchEvent(click));
+      }
 
+      // desktop buttons
       els.undoBtn.addEventListener('click', async () => {
         if (!state.playing || state.path.length <= 1) return;
         state.path.pop();
@@ -402,6 +497,12 @@
           setMessage('<div class="win">Copied share link to clipboard.</div>');
         }).catch(() => { setMessage('<div class="err">Clipboard copy failed.</div>'); });
       });
+
+      // mobile mirrored buttons
+      wireMirrorButtons(els.undoBtn_m, els.undoBtn);
+      wireMirrorButtons(els.restartBtn_m, els.restartBtn);
+      wireMirrorButtons(els.shareResultsBtn_m, els.shareResultsBtn);
+      wireMirrorButtons(els.shareLinkBtn_m, els.shareLinkBtn);
 
       async function getRandomArticleUrl() {
         try {
@@ -439,6 +540,37 @@
           startGameByTitles(startQ, targetQ);
         }
       }
+
+      // mobile drawer behavior
+      function updateChevron() {
+        const open = els.drawer.open;
+        els.drawerChevron.textContent = open ? '▾' : '▸';
+        const summary = els.drawer.querySelector('summary');
+        summary.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      els.drawer.addEventListener('toggle', updateChevron);
+
+      let collapseTimer = null;
+      function scheduleAutoCollapse() {
+        if (window.matchMedia('(max-width: 900px)').matches) {
+          if (collapseTimer) clearTimeout(collapseTimer);
+          collapseTimer = setTimeout(() => {
+            els.drawer.open = false;
+            updateChevron();
+          }, 2500);
+        }
+      }
+      scheduleAutoCollapse();
+
+      let scrolled = false;
+      window.addEventListener('scroll', () => {
+        if (scrolled) return;
+        scrolled = true;
+        if (window.matchMedia('(max-width: 900px)').matches) {
+          els.drawer.open = false;
+          updateChevron();
+        }
+      }, { passive: true });
 
       tryAutoStartFromQuery();
     </script>
