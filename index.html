@@ -12,18 +12,19 @@
         --blue: #2b6fff;
         --green: #34c759;
         --warn: #ff9f0a;
-        --border: rgba(0,0,0,.1);
-        --border-soft: rgba(0,0,0,.06);
+        --border: rgba(0,0,0,.12);
+        --border-soft: rgba(0,0,0,.08);
         --bg-soft: color-mix(in srgb, Canvas 92%, transparent);
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; }
       body { margin: 0; padding: 0; background: Canvas; color: CanvasText; }
+      a { color: LinkText; }
 
       .wrap { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
 
       header {
-        position: sticky; top: 0; z-index: 10;
+        position: sticky; top: 0; z-index: 20;
         padding: 16px clamp(14px, 3vw, 22px);
         border-bottom: 1px solid var(--border);
         backdrop-filter: blur(6px);
@@ -56,7 +57,8 @@
       button.secondary { background: #eee; color: #000; }
       button.share { background: var(--green); color: #fff; }
       button.warn { background: var(--warn); color: #000; }
-      #randomStart, #randomTarget { background: var(--blue) !important; color: #fff !important; }
+      #randomStart, #randomTarget,
+      #randomStart_m, #randomTarget_m { background: var(--blue) !important; color: #fff !important; }
 
       .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
       .note { font-size: 13px; opacity: .85; }
@@ -78,7 +80,7 @@
       .list ol { margin: 0; padding: 0 0 0 20px; }
       .muted { opacity: .7; }
       .win { background: #e9fbe9; border: 1px solid #b6f0b6; color: #145214; padding: 10px 12px; border-radius: 10px; }
-      .err { background: #ffecec; border: 1px solid #ffc4c4; color: #7a0000; padding: 10px 12px; border-radius: 10px; }
+      .err { background: #ffecec; border: 1px solid #ffc4c4; color: #7a0000; padding: 10px 12px; }
 
       details.steps { border-top: 1px solid var(--border-soft); }
       details.steps > summary {
@@ -90,19 +92,23 @@
 
       .sidebarDesktop { display: block; }
 
-      /* Mobile drawer */
+      /* Mobile drawer with inputs and controls */
       .mobileDrawer {
-        display: none;
+        display: block;
         position: sticky;
-        top: calc(56px + 16px);
-        z-index: 6;
+        top: calc(16px + 16px + 44px + 12px);
+        z-index: 15;
         background: var(--bg-soft);
-        border-bottom: 1px solid var(--border);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin: 4px 0 0 0;
+        box-shadow: 0 6px 20px rgba(0,0,0,.08);
+        overflow: hidden;
       }
       .mobileDrawer summary {
         list-style: none;
         padding: 12px 16px;
-        font-weight: 700;
+        font-weight: 800;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -112,40 +118,36 @@
       .mobileDrawer .drawerBody {
         padding: 10px 16px 14px 16px;
         display: grid;
-        gap: 10px;
+        gap: 12px;
       }
       .drawerRow { display: grid; gap: 8px; }
+      .drawerInputs .input-row { flex-direction: column; }
       .drawerButtons { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
-      .drawerActions { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
-      .drawerControls { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
       .drawerShare { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
 
-      @media (max-width: 900px) {
+      @media (max-width: 1024px) {
         main { grid-template-columns: 1fr; }
         .articlePane { border-right: 0; border-bottom: 1px solid var(--border); }
 
-        .input-row { flex-direction: column; }
-        #randomStart, #randomTarget { width: 100%; }
-        .buttons { flex-direction: column; }
-        .buttons > * { width: 100%; }
+        /* hide desktop form on mobile, use drawer inputs instead */
+        #desktopForm { display: none; }
+
         .controls { width: 100%; justify-content: flex-start; }
         .status { font-size: 14px; }
         .badge { padding: 6px 10px; }
 
         .sidebarDesktop { display: none; }
-        .mobileDrawer { display: block; }
       }
-
-      @media (min-width: 1200px) {
-        .frame > .article { max-width: 1100px; }
-        .hud { gap: 16px; }
+      @media (min-width: 1025px) {
+        .mobileDrawer { display: none; }
       }
     </style>
   </head>
   <body>
     <div class="wrap">
       <header>
-        <form id="setup">
+        <!-- desktop form -->
+        <form id="desktopForm">
           <div class="form-group">
             <label for="startUrl">Start article URL</label>
             <div class="input-row">
@@ -167,12 +169,34 @@
         </form>
         <div class="note">Use Random or paste links. Timer during play. Undo. Restart. Share link. Copy route.</div>
 
+        <!-- mobile drawer with inputs and buttons -->
         <details id="mobileDrawer" class="mobileDrawer" open>
-          <summary aria-controls="drawerBody" aria-expanded="true">
-            Game controls
+          <summary>
+            Game menu
             <span id="drawerChevron" aria-hidden="true">▾</span>
           </summary>
-          <div class="drawerBody" id="drawerBody">
+          <div class="drawerBody">
+            <div class="drawerRow drawerInputs">
+              <div class="form-group">
+                <label for="startUrl_m">Start article URL</label>
+                <div class="input-row">
+                  <input id="startUrl_m" type="url" placeholder="https://en.wikipedia.org/wiki/Cat" />
+                  <button type="button" id="randomStart_m">Random</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="targetUrl_m">Target article URL</label>
+                <div class="input-row">
+                  <input id="targetUrl_m" type="url" placeholder="https://en.wikipedia.org/wiki/Quantum_mechanics" />
+                  <button type="button" id="randomTarget_m">Random</button>
+                </div>
+              </div>
+              <div class="buttons">
+                <button class="primary" id="begin_m" type="button">Start game</button>
+                <button class="secondary" id="reset_m" type="button">Reset</button>
+              </div>
+            </div>
+
             <div class="drawerRow">
               <strong>Goal</strong>
               <div class="muted">Navigate from <span id="goalFrom_m">None</span> to <span id="goalTo_m">None</span></div>
@@ -210,7 +234,7 @@
             </div>
           </div>
           <div class="frame" id="frame">
-            <div class="article" id="article"><p class="muted">Enter two Wikipedia links above and press Start game.</p></div>
+            <div class="article" id="article"><p class="muted">Enter two Wikipedia links and press Start game.</p></div>
           </div>
         </section>
 
@@ -238,11 +262,21 @@
       const W_API = "https://en.wikipedia.org/w/api.php";
 
       const els = {
-        setup: document.getElementById('setup'),
+        desktopForm: document.getElementById('desktopForm'),
+
         startUrl: document.getElementById('startUrl'),
         targetUrl: document.getElementById('targetUrl'),
         randomStart: document.getElementById('randomStart'),
         randomTarget: document.getElementById('randomTarget'),
+        begin: document.getElementById('begin'),
+        reset: document.getElementById('reset'),
+
+        startUrl_m: document.getElementById('startUrl_m'),
+        targetUrl_m: document.getElementById('targetUrl_m'),
+        randomStart_m: document.getElementById('randomStart_m'),
+        randomTarget_m: document.getElementById('randomTarget_m'),
+        begin_m: document.getElementById('begin_m'),
+        reset_m: document.getElementById('reset_m'),
 
         article: document.getElementById('article'),
         steps: document.getElementById('steps'),
@@ -284,13 +318,13 @@
       function wikiTitleFromUrl(url) {
         try {
           const u = new URL(url);
-          if (u.hostname.endsWith('wikipedia.org')) {
-            const parts = u.pathname.split('/');
-            const idx = parts.indexOf('wiki');
-            if (idx !== -1 && parts[idx+1]) {
-              return decodeURIComponent(parts.slice(idx+1).join('/'));
-            }
+        if (u.hostname.endsWith('wikipedia.org')) {
+          const parts = u.pathname.split('/');
+          const idx = parts.indexOf('wiki');
+          if (idx !== -1 && parts[idx+1]) {
+            return decodeURIComponent(parts.slice(idx+1).join('/'));
           }
+        }
         } catch {}
         return null;
       }
@@ -319,7 +353,7 @@
         els.clickCount.textContent = '0';
         els.steps.innerHTML = '';
         els.steps_m.innerHTML = '';
-        els.article.innerHTML = '<p class="muted">Enter two Wikipedia links above and press Start game.</p>';
+        els.article.innerHTML = '<p class="muted">Enter two Wikipedia links and press Start game.</p>';
         els.currentTitle.textContent = 'None';
         els.timer.textContent = '00:00';
         if (!keepTargets) {
@@ -430,6 +464,7 @@
         await loadArticle(startTitle, false, true);
       }
 
+      // Click handling inside article
       els.article.addEventListener('click', async (e) => {
         const a = e.target.closest('a');
         if (!a) return;
@@ -445,25 +480,39 @@
         }
       });
 
-      els.setup.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const startTitle = wikiTitleFromUrl(els.startUrl.value);
-        const targetTitle = wikiTitleFromUrl(els.targetUrl.value);
+      // Shared start logic
+      async function handleStart(startVal, targetVal) {
+        const startTitle = wikiTitleFromUrl(startVal);
+        const targetTitle = wikiTitleFromUrl(targetVal);
         if (!startTitle || !targetTitle) {
           setMessage('<div class="err">Please enter valid Wikipedia article links that contain /wiki/ in the path.</div>');
           return;
         }
-        els.startUrl.value  = wikiUrlFromTitle(startTitle);
-        els.targetUrl.value = wikiUrlFromTitle(targetTitle);
+        const sUrl = wikiUrlFromTitle(startTitle);
+        const tUrl = wikiUrlFromTitle(targetTitle);
+        els.startUrl.value = sUrl;
+        els.targetUrl.value = tUrl;
+        els.startUrl_m.value = sUrl;
+        els.targetUrl_m.value = tUrl;
         await startGameByTitles(startTitle, targetTitle);
-      });
-
-      function wireMirrorButtons(srcBtn, destBtn) {
-        const click = new Event('click', { bubbles: true });
-        srcBtn.addEventListener('click', () => destBtn.dispatchEvent(click));
       }
 
-      // desktop buttons
+      // Desktop form submit
+      els.desktopForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleStart(els.startUrl.value, els.targetUrl.value);
+      });
+
+      // Mobile start and reset
+      els.begin_m.addEventListener('click', async () => {
+        await handleStart(els.startUrl_m.value, els.targetUrl_m.value);
+      });
+      els.reset_m.addEventListener('click', () => { resetGame(true); });
+
+      // Desktop reset
+      els.reset.addEventListener('click', () => { resetGame(true); });
+
+      // Undo and restart desktop
       els.undoBtn.addEventListener('click', async () => {
         if (!state.playing || state.path.length <= 1) return;
         state.path.pop();
@@ -478,17 +527,17 @@
         await startGameByTitles(state.originTitle, state.targetTitle);
       });
 
-      els.shareResultsBtn.addEventListener('click', () => {
+      // Share
+      function copyResults() {
         if (!state.path.length) { setMessage('<div class="err">No results to copy yet.</div>'); return; }
         const text = `Wikipedia Link Path Game Result\n\nFrom: ${normalizeTitle(state.originTitle)}\nTo: ${normalizeTitle(state.targetTitle)}\nClicks: ${state.count}\nTime: ${els.timer.textContent}\n\nPath:\n${state.path.map((s,i)=>`${i+1}. ${s.title} -> ${s.url}`).join('\n')}`;
         navigator.clipboard.writeText(text).then(() => {
           setMessage('<div class="win">Copied path text to clipboard.</div>');
         }).catch(() => { setMessage('<div class="err">Clipboard copy failed.</div>'); });
-      });
-
-      els.shareLinkBtn.addEventListener('click', () => {
-        const startTitle = state.originTitle || wikiTitleFromUrl(els.startUrl.value);
-        const targetTitle = state.targetTitle || wikiTitleFromUrl(els.targetUrl.value);
+      }
+      function copyShareLink() {
+        const startTitle = state.originTitle || wikiTitleFromUrl(els.startUrl.value) || wikiTitleFromUrl(els.startUrl_m.value);
+        const targetTitle = state.targetTitle || wikiTitleFromUrl(els.targetUrl.value) || wikiTitleFromUrl(els.targetUrl_m.value);
         if (!startTitle || !targetTitle) { setMessage('<div class="err">Provide start and target first.</div>'); return; }
         const url = new URL(location.href);
         url.searchParams.set('start', startTitle);
@@ -496,14 +545,13 @@
         navigator.clipboard.writeText(url.toString()).then(() => {
           setMessage('<div class="win">Copied share link to clipboard.</div>');
         }).catch(() => { setMessage('<div class="err">Clipboard copy failed.</div>'); });
-      });
+      }
+      els.shareResultsBtn.addEventListener('click', copyResults);
+      els.shareResultsBtn_m.addEventListener('click', copyResults);
+      els.shareLinkBtn.addEventListener('click', copyShareLink);
+      els.shareLinkBtn_m.addEventListener('click', copyShareLink);
 
-      // mobile mirrored buttons
-      wireMirrorButtons(els.undoBtn_m, els.undoBtn);
-      wireMirrorButtons(els.restartBtn_m, els.restartBtn);
-      wireMirrorButtons(els.shareResultsBtn_m, els.shareResultsBtn);
-      wireMirrorButtons(els.shareLinkBtn_m, els.shareLinkBtn);
-
+      // Random helpers
       async function getRandomArticleUrl() {
         try {
           const res = await fetch(`${W_API}?action=query&format=json&origin=*&list=random&rnnamespace=0&rnlimit=1`);
@@ -517,17 +565,50 @@
           return null;
         }
       }
-
-      els.randomStart.addEventListener('click', async () => {
+      async function setRandom(el) {
         const url = await getRandomArticleUrl();
-        if (url) els.startUrl.value = url;
-      });
+        if (url) {
+          el.value = url;
+          // mirror to the other field
+          if (el === els.startUrl) els.startUrl_m.value = url;
+          if (el === els.targetUrl) els.targetUrl_m.value = url;
+          if (el === els.startUrl_m) els.startUrl.value = url;
+          if (el === els.targetUrl_m) els.targetUrl.value = url;
+        }
+      }
+      els.randomStart.addEventListener('click', () => setRandom(els.startUrl));
+      els.randomTarget.addEventListener('click', () => setRandom(els.targetUrl));
+      els.randomStart_m.addEventListener('click', () => setRandom(els.startUrl_m));
+      els.randomTarget_m.addEventListener('click', () => setRandom(els.targetUrl_m));
 
-      els.randomTarget.addEventListener('click', async () => {
-        const url = await getRandomArticleUrl();
-        if (url) els.targetUrl.value = url;
-      });
+      // keep desktop and mobile inputs mirrored while typing
+      function mirrorInput(src, dest) { src.addEventListener('input', () => { dest.value = src.value; }); }
+      mirrorInput(els.startUrl, els.startUrl_m);
+      mirrorInput(els.targetUrl, els.targetUrl_m);
+      mirrorInput(els.startUrl_m, els.startUrl);
+      mirrorInput(els.targetUrl_m, els.targetUrl);
 
+      // Mobile drawer behavior
+      function updateChevron() {
+        els.drawerChevron.textContent = els.drawer.open ? '▾' : '▸';
+      }
+      els.drawer.addEventListener('toggle', updateChevron);
+      updateChevron();
+
+      // Auto-collapse after a short delay on small screens
+      if (window.matchMedia('(max-width: 1024px)').matches) {
+        setTimeout(() => { els.drawer.open = false; updateChevron(); }, 2500);
+        let collapsedOnScroll = false;
+        window.addEventListener('scroll', () => {
+          if (!collapsedOnScroll && els.drawer.open) {
+            collapsedOnScroll = true;
+            els.drawer.open = false;
+            updateChevron();
+          }
+        }, { passive: true });
+      }
+
+      // Auto-start from query params
       function tryAutoStartFromQuery() {
         const params = new URLSearchParams(location.search);
         const startQ = params.get('start');
@@ -537,41 +618,11 @@
           const tUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(targetQ)}`;
           els.startUrl.value = sUrl;
           els.targetUrl.value = tUrl;
+          els.startUrl_m.value = sUrl;
+          els.targetUrl_m.value = tUrl;
           startGameByTitles(startQ, targetQ);
         }
       }
-
-      // mobile drawer behavior
-      function updateChevron() {
-        const open = els.drawer.open;
-        els.drawerChevron.textContent = open ? '▾' : '▸';
-        const summary = els.drawer.querySelector('summary');
-        summary.setAttribute('aria-expanded', open ? 'true' : 'false');
-      }
-      els.drawer.addEventListener('toggle', updateChevron);
-
-      let collapseTimer = null;
-      function scheduleAutoCollapse() {
-        if (window.matchMedia('(max-width: 900px)').matches) {
-          if (collapseTimer) clearTimeout(collapseTimer);
-          collapseTimer = setTimeout(() => {
-            els.drawer.open = false;
-            updateChevron();
-          }, 2500);
-        }
-      }
-      scheduleAutoCollapse();
-
-      let scrolled = false;
-      window.addEventListener('scroll', () => {
-        if (scrolled) return;
-        scrolled = true;
-        if (window.matchMedia('(max-width: 900px)').matches) {
-          els.drawer.open = false;
-          updateChevron();
-        }
-      }, { passive: true });
-
       tryAutoStartFromQuery();
     </script>
   </body>
