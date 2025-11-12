@@ -20,6 +20,7 @@
       button.secondary { background: #eee; }
       button.share { background: #34c759; color: white; }
       button.warn { background: #ff9f0a; color: black; }
+      button.random { background: #2b6fff; color: white; }
       main { display: grid; grid-template-columns: 2fr 1fr; min-height: 0; }
       .articlePane { border-right: 1px solid rgba(0,0,0,.1); min-height: 0; display: grid; grid-template-rows: auto 1fr; }
       .hud { padding: 12px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid rgba(0,0,0,.06); flex-wrap: wrap; }
@@ -48,14 +49,14 @@
             <label for="startUrl">Start article URL</label>
             <div class="input-row">
               <input id="startUrl" type="url" placeholder="https://en.wikipedia.org/wiki/Cat" required />
-              <button type="button" class="secondary" id="randomStart">Random</button>
+              <button type="button" class="random" id="randomStart">Random</button>
             </div>
           </div>
           <div class="form-group">
             <label for="targetUrl">Target article URL</label>
             <div class="input-row">
               <input id="targetUrl" type="url" placeholder="https://en.wikipedia.org/wiki/Quantum_mechanics" required />
-              <button type="button" class="secondary" id="randomTarget">Random</button>
+              <button type="button" class="random" id="randomTarget">Random</button>
             </div>
           </div>
           <div class="buttons">
@@ -266,7 +267,7 @@
       }
 
       async function startGameByTitles(startTitle, targetTitle) {
-        resetGame(true);          // do not clear targets or inputs
+        resetGame(true);
         state.originTitle = startTitle;
         state.targetTitle = targetTitle;
         state.playing = true;
@@ -299,7 +300,6 @@
           setMessage('<div class="err">Please enter valid Wikipedia article links that contain /wiki/ in the path.</div>');
           return;
         }
-        // keep visible normalized URLs in the inputs so they never look cleared
         els.startUrl.value  = wikiUrlFromTitle(startTitle);
         els.targetUrl.value = wikiUrlFromTitle(targetTitle);
         await startGameByTitles(startTitle, targetTitle);
@@ -378,7 +378,6 @@
         }
       }
 
-      // no default values here so inputs do not get overwritten on Start
       tryAutoStartFromQuery();
     </script>
   </body>
