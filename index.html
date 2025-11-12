@@ -266,7 +266,7 @@
       }
 
       async function startGameByTitles(startTitle, targetTitle) {
-        resetGame(false);
+        resetGame(true);          // do not clear targets or inputs
         state.originTitle = startTitle;
         state.targetTitle = targetTitle;
         state.playing = true;
@@ -299,6 +299,9 @@
           setMessage('<div class="err">Please enter valid Wikipedia article links that contain /wiki/ in the path.</div>');
           return;
         }
+        // keep visible normalized URLs in the inputs so they never look cleared
+        els.startUrl.value  = wikiUrlFromTitle(startTitle);
+        els.targetUrl.value = wikiUrlFromTitle(targetTitle);
         await startGameByTitles(startTitle, targetTitle);
       });
 
@@ -367,14 +370,15 @@
         const startQ = params.get('start');
         const targetQ = params.get('target');
         if (startQ && targetQ) {
-          els.startUrl.value = `https://en.wikipedia.org/wiki/${encodeURIComponent(startQ)}`;
-          els.targetUrl.value = `https://en.wikipedia.org/wiki/${encodeURIComponent(targetQ)}`;
+          const sUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(startQ)}`;
+          const tUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(targetQ)}`;
+          els.startUrl.value = sUrl;
+          els.targetUrl.value = tUrl;
           startGameByTitles(startQ, targetQ);
         }
       }
 
-      els.startUrl.value = 'https://en.wikipedia.org/wiki/Cat';
-      els.targetUrl.value = 'https://en.wikipedia.org/wiki/Quantum_mechanics';
+      // no default values here so inputs do not get overwritten on Start
       tryAutoStartFromQuery();
     </script>
   </body>
