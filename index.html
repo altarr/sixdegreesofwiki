@@ -92,7 +92,7 @@
 
       .sidebarDesktop { display: block; }
 
-      /* Mobile drawer with inputs and controls */
+      /* Drawer always visible so you can confirm contents */
       .mobileDrawer {
         display: block;
         position: sticky;
@@ -116,7 +116,7 @@
       }
       .mobileDrawer summary::-webkit-details-marker { display: none; }
       .mobileDrawer .drawerBody {
-        padding: 10px 16px 14px 16px;
+        padding: 10px 16px 16px 16px;
         display: grid;
         gap: 12px;
       }
@@ -129,24 +129,18 @@
         main { grid-template-columns: 1fr; }
         .articlePane { border-right: 0; border-bottom: 1px solid var(--border); }
 
-        /* hide desktop form on mobile, use drawer inputs instead */
-        #desktopForm { display: none; }
-
         .controls { width: 100%; justify-content: flex-start; }
         .status { font-size: 14px; }
         .badge { padding: 6px 10px; }
 
         .sidebarDesktop { display: none; }
       }
-      @media (min-width: 1025px) {
-        .mobileDrawer { display: none; }
-      }
     </style>
   </head>
   <body>
     <div class="wrap">
       <header>
-        <!-- desktop form -->
+        <!-- desktop quick form stays for large screens -->
         <form id="desktopForm">
           <div class="form-group">
             <label for="startUrl">Start article URL</label>
@@ -169,10 +163,10 @@
         </form>
         <div class="note">Use Random or paste links. Timer during play. Undo. Restart. Share link. Copy route.</div>
 
-        <!-- mobile drawer with inputs and buttons -->
+        <!-- drawer with inputs first under Game controls -->
         <details id="mobileDrawer" class="mobileDrawer" open>
           <summary>
-            Game menu
+            Game controls
             <span id="drawerChevron" aria-hidden="true">▾</span>
           </summary>
           <div class="drawerBody">
@@ -318,13 +312,13 @@
       function wikiTitleFromUrl(url) {
         try {
           const u = new URL(url);
-        if (u.hostname.endsWith('wikipedia.org')) {
-          const parts = u.pathname.split('/');
-          const idx = parts.indexOf('wiki');
-          if (idx !== -1 && parts[idx+1]) {
-            return decodeURIComponent(parts.slice(idx+1).join('/'));
+          if (u.hostname.endsWith('wikipedia.org')) {
+            const parts = u.pathname.split('/');
+            const idx = parts.indexOf('wiki');
+            if (idx !== -1 && parts[idx+1]) {
+              return decodeURIComponent(parts.slice(idx+1).join('/'));
+            }
           }
-        }
         } catch {}
         return null;
       }
@@ -464,7 +458,7 @@
         await loadArticle(startTitle, false, true);
       }
 
-      // Click handling inside article
+      // click in article
       els.article.addEventListener('click', async (e) => {
         const a = e.target.closest('a');
         if (!a) return;
@@ -480,7 +474,7 @@
         }
       });
 
-      // Shared start logic
+      // start logic shared
       async function handleStart(startVal, targetVal) {
         const startTitle = wikiTitleFromUrl(startVal);
         const targetTitle = wikiTitleFromUrl(targetVal);
@@ -497,22 +491,22 @@
         await startGameByTitles(startTitle, targetTitle);
       }
 
-      // Desktop form submit
+      // desktop form
       els.desktopForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         await handleStart(els.startUrl.value, els.targetUrl.value);
       });
 
-      // Mobile start and reset
+      // mobile begin and reset
       els.begin_m.addEventListener('click', async () => {
         await handleStart(els.startUrl_m.value, els.targetUrl_m.value);
       });
       els.reset_m.addEventListener('click', () => { resetGame(true); });
 
-      // Desktop reset
+      // desktop reset
       els.reset.addEventListener('click', () => { resetGame(true); });
 
-      // Undo and restart desktop
+      // undo restart desktop
       els.undoBtn.addEventListener('click', async () => {
         if (!state.playing || state.path.length <= 1) return;
         state.path.pop();
@@ -527,7 +521,7 @@
         await startGameByTitles(state.originTitle, state.targetTitle);
       });
 
-      // Share
+      // share
       function copyResults() {
         if (!state.path.length) { setMessage('<div class="err">No results to copy yet.</div>'); return; }
         const text = `Wikipedia Link Path Game Result\n\nFrom: ${normalizeTitle(state.originTitle)}\nTo: ${normalizeTitle(state.targetTitle)}\nClicks: ${state.count}\nTime: ${els.timer.textContent}\n\nPath:\n${state.path.map((s,i)=>`${i+1}. ${s.title} -> ${s.url}`).join('\n')}`;
@@ -551,7 +545,7 @@
       els.shareLinkBtn.addEventListener('click', copyShareLink);
       els.shareLinkBtn_m.addEventListener('click', copyShareLink);
 
-      // Random helpers
+      // random
       async function getRandomArticleUrl() {
         try {
           const res = await fetch(`${W_API}?action=query&format=json&origin=*&list=random&rnnamespace=0&rnlimit=1`);
@@ -569,7 +563,6 @@
         const url = await getRandomArticleUrl();
         if (url) {
           el.value = url;
-          // mirror to the other field
           if (el === els.startUrl) els.startUrl_m.value = url;
           if (el === els.targetUrl) els.targetUrl_m.value = url;
           if (el === els.startUrl_m) els.startUrl.value = url;
@@ -581,23 +574,21 @@
       els.randomStart_m.addEventListener('click', () => setRandom(els.startUrl_m));
       els.randomTarget_m.addEventListener('click', () => setRandom(els.targetUrl_m));
 
-      // keep desktop and mobile inputs mirrored while typing
+      // mirror typing between desktop and drawer fields
       function mirrorInput(src, dest) { src.addEventListener('input', () => { dest.value = src.value; }); }
       mirrorInput(els.startUrl, els.startUrl_m);
       mirrorInput(els.targetUrl, els.targetUrl_m);
       mirrorInput(els.startUrl_m, els.startUrl);
       mirrorInput(els.targetUrl_m, els.targetUrl);
 
-      // Mobile drawer behavior
-      function updateChevron() {
-        els.drawerChevron.textContent = els.drawer.open ? '▾' : '▸';
-      }
+      // drawer chevron
+      function updateChevron() { els.drawerChevron.textContent = els.drawer.open ? '▾' : '▸'; }
       els.drawer.addEventListener('toggle', updateChevron);
       updateChevron();
 
-      // Auto-collapse after a short delay on small screens
+      // auto collapse on small screens after short delay
       if (window.matchMedia('(max-width: 1024px)').matches) {
-        setTimeout(() => { els.drawer.open = false; updateChevron(); }, 2500);
+        setTimeout(() => { els.drawer.open = false; updateChevron(); }, 2000);
         let collapsedOnScroll = false;
         window.addEventListener('scroll', () => {
           if (!collapsedOnScroll && els.drawer.open) {
@@ -608,7 +599,7 @@
         }, { passive: true });
       }
 
-      // Auto-start from query params
+      // auto start from query
       function tryAutoStartFromQuery() {
         const params = new URLSearchParams(location.search);
         const startQ = params.get('start');
