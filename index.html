@@ -2,50 +2,101 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2b6fff" />
     <title>Wikipedia Link Path Game</title>
     <style>
-      :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color-scheme: light dark; }
+      :root {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        color-scheme: light dark;
+        --blue: #2b6fff;
+        --green: #34c759;
+        --warn: #ff9f0a;
+        --border: rgba(0,0,0,.1);
+        --border-soft: rgba(0,0,0,.06);
+      }
+      * { box-sizing: border-box; }
       body { margin: 0; padding: 0; }
       .wrap { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
-      header { padding: 20px; border-bottom: 1px solid rgba(0,0,0,.1); display: flex; flex-direction: column; gap: 16px; }
-      form { display: flex; flex-direction: column; gap: 16px; }
-      .form-group { display: flex; flex-direction: column; gap: 8px; }
-      label { font-size: 14px; opacity: .8; }
-      .input-row { display: flex; gap: 8px; }
-      input[type="url"] { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,.2); font-size: 15px; }
-      .buttons { display: flex; gap: 12px; }
-      button { padding: 12px 16px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 600; }
-      button.primary { background: #2b6fff; color: white; }
-      button.secondary { background: #eee; color: black; }
-      button.share { background: #34c759; color: white; }
-      button.warn { background: #ff9f0a; color: black; }
 
-      /* Force Random buttons to blue with white text */
-      #randomStart,
-      #randomTarget {
-        background: #2b6fff !important;
-        color: #ffffff !important;
+      header {
+        position: sticky; top: 0; z-index: 5;
+        padding: 16px clamp(14px, 3vw, 20px);
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(6px);
+        background: color-mix(in srgb, Canvas 88%, transparent);
+        display: flex; flex-direction: column; gap: 14px;
       }
+      form { display: flex; flex-direction: column; gap: 12px; }
+      .form-group { display: flex; flex-direction: column; gap: 6px; }
+      label { font-size: 14px; opacity: .85; }
+      .input-row { display: flex; gap: 8px; }
+      input[type="url"] {
+        flex: 1;
+        padding: 14px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,.2);
+        font-size: 16px;
+        min-height: 44px;
+      }
+      button {
+        padding: 12px 16px;
+        border: 0;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 16px;
+        min-height: 44px;
+      }
+      button.primary { background: var(--blue); color: #fff; }
+      button.secondary { background: #eee; color: #000; }
+      button.share { background: var(--green); color: #fff; }
+      button.warn { background: var(--warn); color: #000; }
+      #randomStart, #randomTarget { background: var(--blue) !important; color: #fff !important; }
+
+      .buttons { display: flex; gap: 10px; }
+      .note { font-size: 13px; opacity: .85; }
 
       main { display: grid; grid-template-columns: 2fr 1fr; min-height: 0; }
-      .articlePane { border-right: 1px solid rgba(0,0,0,.1); min-height: 0; display: grid; grid-template-rows: auto 1fr; }
-      .hud { padding: 12px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid rgba(0,0,0,.06); flex-wrap: wrap; }
+      .articlePane { border-right: 1px solid var(--border); min-height: 0; display: grid; grid-template-rows: auto 1fr; }
+      .hud { padding: 12px clamp(14px, 3vw, 20px); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-soft); flex-wrap: wrap; }
       .badge { display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border-radius: 999px; background: #f2f4f8; font-weight: 700; }
       .status { font-size: 15px; opacity: .9; }
       .timer { font-variant-numeric: tabular-nums; }
       .controls { margin-left: auto; display: flex; gap: 8px; }
-      .frame { overflow: auto; padding: 20px; }
-      .frame > .article { max-width: 900px; margin: 0 auto; line-height: 1.5; }
+      .frame { overflow: auto; padding: clamp(10px, 2.5vw, 20px); }
+      .frame > .article { max-width: 900px; margin: 0 auto; line-height: 1.55; }
+      .article img { max-width: 100%; height: auto; }
+
       .sidebar { display: grid; grid-template-rows: auto auto auto 1fr; min-height: 0; }
-      .panel { padding: 14px 20px; border-bottom: 1px solid rgba(0,0,0,.06); }
-      .list { overflow: auto; padding: 14px 20px; }
+      .panel { padding: 12px clamp(14px, 3vw, 20px); border-bottom: 1px solid var(--border-soft); }
+      .list { overflow: auto; padding: 12px clamp(14px, 3vw, 20px); }
       .list ol { margin: 0; padding: 0 0 0 20px; }
       .muted { opacity: .7; }
       .win { background: #e9fbe9; border: 1px solid #b6f0b6; color: #145214; padding: 10px 12px; border-radius: 10px; }
       .err { background: #ffecec; border: 1px solid #ffc4c4; color: #7a0000; padding: 10px 12px; border-radius: 10px; }
-      .note { font-size: 13px; opacity: .8; }
-      @media (max-width: 900px) { main { grid-template-columns: 1fr; } .articlePane { border-right: 0; border-bottom: 1px solid rgba(0,0,0,.1);} }
+
+      details.steps { border-top: 1px solid var(--border-soft); }
+      details.steps > summary {
+        list-style: none; cursor: pointer; padding: 12px clamp(14px, 3vw, 20px);
+        font-weight: 700;
+      }
+      details.steps[open] > summary { border-bottom: 1px solid var(--border-soft); }
+      details.steps > summary::-webkit-details-marker { display: none; }
+
+      @media (max-width: 900px) {
+        main { grid-template-columns: 1fr; }
+        .articlePane { border-right: 0; border-bottom: 1px solid var(--border); }
+      }
+      @media (max-width: 720px) {
+        .input-row { flex-direction: column; }
+        #randomStart, #randomTarget { width: 100%; }
+        .buttons { flex-direction: column; }
+        .buttons > * { width: 100%; }
+        .controls { width: 100%; justify-content: flex-start; }
+        .status { font-size: 14px; }
+        .badge { padding: 6px 10px; }
+      }
     </style>
   </head>
   <body>
@@ -71,7 +122,7 @@
             <button class="secondary" id="reset" type="button">Reset</button>
           </div>
         </form>
-        <div class="note">Paste two Wikipedia links or use Random. Timer runs during play. You can undo the last step. Restart the challenge. Share a link. Copy the route.</div>
+        <div class="note">Paste two Wikipedia links or use Random. Timer runs during play. Undo, Restart, Share link, Copy route available.</div>
       </header>
 
       <main>
@@ -96,14 +147,18 @@
             <div class="muted">Navigate from <span id="goalFrom"></span> to <span id="goalTo"></span></div>
           </div>
           <div class="panel" id="msg"></div>
+
           <div class="panel" style="display:flex; gap:8px; flex-wrap:wrap;">
             <button id="shareResultsBtn" class="share">Copy path text</button>
             <button id="shareLinkBtn" class="primary">Copy share link</button>
           </div>
-          <div class="list">
-            <div><strong>Steps</strong></div>
-            <ol id="steps"></ol>
-          </div>
+
+          <details class="steps" open>
+            <summary>Steps</summary>
+            <div class="list">
+              <ol id="steps"></ol>
+            </div>
+          </details>
         </aside>
       </main>
     </div>
