@@ -32,8 +32,8 @@
         display: flex; flex-direction: column; gap: 12px;
       }
 
-      /* single controls drawer used on all sizes to avoid duplicates */
-      .mobileDrawer {
+      /* single controls drawer used on all sizes */
+      .controlsDrawer {
         display: block;
         background: var(--bg-soft);
         border: 1px solid var(--border);
@@ -41,8 +41,7 @@
         box-shadow: 0 6px 20px rgba(0,0,0,.06);
         overflow: hidden;
       }
-      .mobileDrawer[open] { border-color: var(--border-soft); }
-      .mobileDrawer summary {
+      .controlsDrawer summary {
         list-style: none;
         padding: 12px 16px;
         font-weight: 800;
@@ -51,8 +50,8 @@
         align-items: center;
         justify-content: space-between;
       }
-      .mobileDrawer summary::-webkit-details-marker { display: none; }
-      .mobileDrawer .drawerBody {
+      .controlsDrawer summary::-webkit-details-marker { display: none; }
+      .controlsBody {
         padding: 10px 16px 16px 16px;
         display: grid;
         gap: 12px;
@@ -100,13 +99,12 @@
       .badge { display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border-radius: 999px; background: #f2f4f8; font-weight: 700; }
       .status { font-size: 15px; opacity: .9; }
       .timer { font-variant-numeric: tabular-nums; }
-      .controls { margin-left: auto; display: flex; gap: 8px; }
 
       .frame { overflow: auto; padding: clamp(10px, 2.5vw, 22px); }
       .frame > .article { max-width: 980px; margin: 0 auto; line-height: 1.55; }
       .article img { max-width: 100%; height: auto; }
 
-      .sidebar { display: grid; grid-template-rows: auto auto 1fr; min-height: 0; }
+      .sidebar { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
       .panel { padding: 12px clamp(14px, 3vw, 22px); border-bottom: 1px solid var(--border-soft); }
       .list { overflow: auto; padding: 12px clamp(14px, 3vw, 22px); }
       .list ol { margin: 0; padding: 0 0 0 20px; }
@@ -126,9 +124,10 @@
   <body>
     <div class="wrap">
       <header>
-        <details id="controls" class="mobileDrawer" open>
+        <!-- only one place for Start and Reset lives here -->
+        <details id="controls" class="controlsDrawer" open>
           <summary>Game controls <span id="drawerChevron" aria-hidden="true">▾</span></summary>
-          <div class="drawerBody">
+          <div class="controlsBody">
             <div class="form-group">
               <label for="startUrl">Start article URL or title</label>
               <div class="input-row">
@@ -337,9 +336,11 @@
         await loadArticle(st);
       }
 
+      // only Start and Reset here
       els.begin.addEventListener('click',()=>startByInputs(els.startUrl.value, els.targetUrl.value));
       els.reset.addEventListener('click',()=>resetGame(false));
 
+      // article navigation click
       els.article.addEventListener('click',async e=>{
         const a=e.target.closest('a'); if(!a) return;
         const t=a.getAttribute('data-wiki-title'); if(!t) return;
