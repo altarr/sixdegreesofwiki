@@ -268,18 +268,15 @@
 
       async function handleStart(s,t){const st=wikiTitleFromUrl(s);const tt=wikiTitleFromUrl(t);if(!st||!tt){setMessage('<div class="err">Enter valid links.</div>');return}state.originTitle=st;state.targetTitle=tt;state.path=[{title:normalizeTitle(st),url:wikiUrlFromTitle(st)}];state.count=0;els.clickCount.textContent='0';els.steps.innerHTML='';state.playing=true;startTimer();loadArticle(st)}
 
-      // begin and reset
       document.getElementById('desktopForm').addEventListener('submit',(e)=>{e.preventDefault();handleStart(els.startUrl.value,els.targetUrl.value)})
       els.begin_m.addEventListener('click',()=>handleStart(els.startUrl_m.value,els.targetUrl_m.value))
       els.reset.addEventListener('click',resetGame)
       els.reset_m.addEventListener('click',resetGame)
 
-      // article navigation click
       els.article.addEventListener('click',async e=>{const a=e.target.closest('a');if(!a)return;const t=a.getAttribute('href');if(!t)return;if(t.startsWith('/wiki/')){e.preventDefault();if(!state.playing)return;state.count+=1;const next=decodeURIComponent(t.replace(/^\/wiki\//,''));state.path.push({title:normalizeTitle(next),url:wikiUrlFromTitle(next)});renderPath();await loadArticle(next)}})
 
-      // random fetchers
       async function getRandomArticleUrl(){try{const r=await fetch(`${W_API}?action=query&format=json&origin=*&list=random&rnnamespace=0&rnlimit=1`);const d=await r.json();const title=d?.query?.random?.[0]?.title;return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g,'_'))}`}catch{return null}}
-      async function setRandom(el){const u=await getRandomArticleUrl();if(u){el.value=u; // mirror basics
+      async function setRandom(el){const u=await getRandomArticleUrl();if(u){el.value=u;
         if(el===els.startUrl) els.startUrl_m.value=u;
         if(el===els.targetUrl) els.targetUrl_m.value=u;
         if(el===els.startUrl_m) els.startUrl.value=u;
@@ -290,7 +287,6 @@
       els.randomStart_m.addEventListener('click',()=>setRandom(els.startUrl_m))
       els.randomTarget_m.addEventListener('click',()=>setRandom(els.targetUrl_m))
 
-      // share both panels
       function copyResults(){
         if(!state.path.length){setMessage('<div class="err">No results yet.</div>');return}
         const start=normalizeTitle(state.originTitle)
@@ -328,7 +324,6 @@ ${challengeUrl.toString()}`
       els.shareLinkBtn.addEventListener('click',copyShareLink)
       els.shareLinkBtn_m&&els.shareLinkBtn_m.addEventListener('click',copyShareLink)
 
-      // undo and restart
       async function undo(){if(!state.playing||state.path.length<=1)return;state.path.pop();state.count=Math.max(0,state.count-1);const last=state.path[state.path.length-1];renderPath();await loadArticle(last.title)}
       async function restart(){if(!state.originTitle||!state.targetTitle)return;state.count=0;state.path=[{title:normalizeTitle(state.originTitle),url:wikiUrlFromTitle(state.originTitle)}];startTimer();await loadArticle(state.originTitle)}
       els.undoBtn.addEventListener('click',undo)
@@ -336,13 +331,13 @@ ${challengeUrl.toString()}`
       els.restartBtn.addEventListener('click',restart)
       els.restartBtn_m&&els.restartBtn_m.addEventListener('click',restart)
 
-      // auto start from ?start=&target=
+      // fixed auto start
       (function(){
         const p=new URLSearchParams(location.search);
         const s=p.get('start');const t=p.get('target');
         if(s&&t){
-          const su=`https://en.wikipedia.org/wiki/${encodeURIComponent(s)}`;
-          const tu=`https://en.wikipedia.org/wiki/${encodeURIComponent(t)}`;
+          const su=`https://en.wikipedia.org/wiki/${s}`;
+          const tu=`https://en.wikipedia.org/wiki/${t}`;
           els.startUrl.value=su;els.targetUrl.value=tu;
           els.startUrl_m.value=su;els.targetUrl_m.value=tu;
           handleStart(su,tu);
