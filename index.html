@@ -20,9 +20,7 @@
       html, body { height: 100%; }
       body { margin: 0; padding: 0; background: Canvas; color: CanvasText; }
       a { color: LinkText; }
-
       .wrap { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
-
       header {
         position: sticky; top: 0; z-index: 20;
         padding: 16px clamp(14px, 3vw, 22px);
@@ -31,7 +29,6 @@
         background: var(--bg-soft);
         display: flex; flex-direction: column; gap: 14px;
       }
-
       form { display: flex; flex-direction: column; gap: 12px; }
       .form-group { display: flex; flex-direction: column; gap: 6px; }
       label { font-size: 14px; opacity: .85; }
@@ -59,10 +56,8 @@
       button.warn { background: var(--warn); color: #000; }
       #randomStart, #randomTarget,
       #randomStart_m, #randomTarget_m { background: var(--blue) !important; color: #fff !important; }
-
       .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
       .note { font-size: 13px; opacity: .85; }
-
       main { display: grid; grid-template-columns: 2fr 1fr; min-height: 0; }
       .articlePane { border-right: 1px solid var(--border); min-height: 0; display: grid; grid-template-rows: auto 1fr; }
       .hud { padding: 12px clamp(14px, 3vw, 22px); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-soft); flex-wrap: wrap; }
@@ -73,7 +68,6 @@
       .frame { overflow: auto; padding: clamp(10px, 2.5vw, 22px); }
       .frame > .article { max-width: 980px; margin: 0 auto; line-height: 1.55; }
       .article img { max-width: 100%; height: auto; }
-
       .sidebar { display: grid; grid-template-rows: auto auto auto 1fr; min-height: 0; }
       .panel { padding: 12px clamp(14px, 3vw, 22px); border-bottom: 1px solid var(--border-soft); }
       .list { overflow: auto; padding: 12px clamp(14px, 3vw, 22px); }
@@ -81,7 +75,6 @@
       .muted { opacity: .7; }
       .win { background: #e9fbe9; border: 1px solid #b6f0b6; color: #145214; padding: 10px 12px; border-radius: 10px; }
       .err { background: #ffecec; border: 1px solid #ffc4c4; color: #7a0000; padding: 10px 12px; border-radius: 10px; }
-
       details.steps { border-top: 1px solid var(--border-soft); }
       details.steps > summary {
         list-style: none; cursor: pointer; padding: 12px clamp(14px, 3vw, 22px);
@@ -89,7 +82,6 @@
       }
       details.steps[open] > summary { border-bottom: 1px solid var(--border-soft); }
       details.steps > summary::-webkit-details-marker { display: none; }
-
       .mobileDrawer {
         display: block;
         position: sticky;
@@ -121,7 +113,6 @@
       .drawerInputs .input-row { flex-direction: column; }
       .drawerButtons { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
       .drawerShare { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
-
       @media (max-width: 1024px) {
         main { grid-template-columns: 1fr; }
         .articlePane { border-right: 0; border-bottom: 1px solid var(--border); }
@@ -220,6 +211,7 @@
 
     <script>
       const W_API = "https://en.wikipedia.org/w/api.php";
+
       const els = {
         startUrl: document.getElementById('startUrl'),
         targetUrl: document.getElementById('targetUrl'),
@@ -252,48 +244,178 @@
 
       let state = { playing:false, originTitle:null, targetTitle:null, currentTitle:null, count:0, path:[], startTime:null, timerId:null };
 
-      function wikiTitleFromUrl(url){try{const u=new URL(url);if(u.hostname.endsWith('wikipedia.org')){const p=u.pathname.split('/');const i=p.indexOf('wiki');if(i!==-1&&p[i+1])return decodeURIComponent(p.slice(i+1).join('/'))}}catch{}return null}
-      function wikiUrlFromTitle(t){return `https://en.wikipedia.org/wiki/${encodeURIComponent(t.replace(/\s/g,'_'))}`}
-      function normalizeTitle(t){if(!t)return null;const x=t.replace(/_/g,' ').trim();return x.charAt(0).toUpperCase()+x.slice(1)}
-      function setMessage(h,k=''){els.msg.innerHTML=h||'';els.msg.className='panel '+k}
+      function ensureWikiUrlOrTitle(input) {
+        if (!input) return null;
+        // Accept full URL or raw title from query
+        try {
+          const u = new URL(input);
+          if (u.hostname.endsWith('wikipedia.org') && u.pathname.includes('/wiki/')) return u.toString();
+        } catch {}
+        // Treat as title
+        return wikiUrlFromTitle(input);
+      }
 
-      function startTimer(){state.startTime=Date.now();state.timerId=setInterval(()=>{const s=Math.floor((Date.now()-state.startTime)/1000);const m=String(Math.floor(s/60)).padStart(2,'0');const ss=String(s%60).padStart(2,'0');els.timer.textContent=`${m}:${ss}`},250)}
-      function stopTimer(){if(state.timerId){clearInterval(state.timerId);state.timerId=null}}
+      function wikiTitleFromUrl(url){
+        try{
+          const u=new URL(url);
+          if(u.hostname.endsWith('wikipedia.org')){
+            const p=u.pathname.split('/');
+            const i=p.indexOf('wiki');
+            if(i!==-1&&p[i+1]) return decodeURIComponent(p.slice(i+1).join('/'));
+          }
+        }catch{}
+        return null;
+      }
 
-      async function loadArticle(t){const n=normalizeTitle(t);try{const r=await fetch(`${W_API}?action=parse&format=json&origin=*&prop=text&page=${encodeURIComponent(n)}`);const d=await r.json();const html=d.parse.text['*'];els.article.innerHTML=html;const pageTitle=d.parse.title||n;state.currentTitle=pageTitle;els.currentTitle.textContent=pageTitle;if(state.playing&&normalizeTitle(pageTitle)===normalizeTitle(state.targetTitle)){setMessage(`<div class="win">You made it in ${state.count} clicks and ${els.timer.textContent}</div>`);stopTimer();state.playing=false}}catch{setMessage('<div class="err">Load failed.</div>')}}
+      function wikiUrlFromTitle(t){
+        const withUnderscores = t.replace(/\s/g,'_');
+        return `https://en.wikipedia.org/wiki/${encodeURIComponent(withUnderscores)}`;
+      }
 
-      function resetGame(){stopTimer();state={playing:false,originTitle:null,targetTitle:null,currentTitle:null,count:0,path:[],startTime:null,timerId:null};els.clickCount.textContent='0';els.steps.innerHTML='';els.steps_m&& (els.steps_m.innerHTML='');els.article.innerHTML='<p class="muted">Enter two Wikipedia links and press Start game.</p>';els.currentTitle.textContent='None';els.timer.textContent='00:00';setMessage('')}
+      function normalizeTitle(t){
+        if(!t) return null;
+        const x=t.replace(/_/g,' ').trim();
+        return x.charAt(0).toUpperCase()+x.slice(1);
+      }
 
-      function renderPath(){els.steps.innerHTML='';state.path.forEach(step=>{const li=document.createElement('li');const a=document.createElement('a');a.href=step.url;a.textContent=step.title;a.target='_blank';a.rel='noopener';li.appendChild(a);els.steps.appendChild(li)});els.clickCount.textContent=String(state.count)}
+      function setMessage(h,k=''){ els.msg.innerHTML=h||''; els.msg.className='panel '+k; }
 
-      async function handleStart(s,t){const st=wikiTitleFromUrl(s);const tt=wikiTitleFromUrl(t);if(!st||!tt){setMessage('<div class="err">Enter valid links.</div>');return}state.originTitle=st;state.targetTitle=tt;state.path=[{title:normalizeTitle(st),url:wikiUrlFromTitle(st)}];state.count=0;els.clickCount.textContent='0';els.steps.innerHTML='';state.playing=true;startTimer();loadArticle(st)}
+      function startTimer(){
+        state.startTime=Date.now();
+        state.timerId=setInterval(()=>{
+          const s=Math.floor((Date.now()-state.startTime)/1000);
+          const m=String(Math.floor(s/60)).padStart(2,'0');
+          const ss=String(s%60).padStart(2,'0');
+          els.timer.textContent=`${m}:${ss}`;
+        },250);
+      }
 
-      document.getElementById('desktopForm').addEventListener('submit',(e)=>{e.preventDefault();handleStart(els.startUrl.value,els.targetUrl.value)})
-      els.begin_m.addEventListener('click',()=>handleStart(els.startUrl_m.value,els.targetUrl_m.value))
-      els.reset.addEventListener('click',resetGame)
-      els.reset_m.addEventListener('click',resetGame)
+      function stopTimer(){ if(state.timerId){ clearInterval(state.timerId); state.timerId=null; } }
 
-      els.article.addEventListener('click',async e=>{const a=e.target.closest('a');if(!a)return;const t=a.getAttribute('href');if(!t)return;if(t.startsWith('/wiki/')){e.preventDefault();if(!state.playing)return;state.count+=1;const next=decodeURIComponent(t.replace(/^\/wiki\//,''));state.path.push({title:normalizeTitle(next),url:wikiUrlFromTitle(next)});renderPath();await loadArticle(next)}})
+      async function loadArticle(t){
+        const n=normalizeTitle(t);
+        try{
+          const r=await fetch(`${W_API}?action=parse&format=json&origin=*&prop=text|categories|links&page=${encodeURIComponent(n)}&redirects=`);
+          if(!r.ok) throw new Error('request failed');
+          const d=await r.json();
+          if(!d.parse || !d.parse.text || !d.parse.text['*']) throw new Error('no parse');
+          const html=d.parse.text['*'];
+          els.article.innerHTML=html;
+          const pageTitle=d.parse.title||n;
+          state.currentTitle=pageTitle;
+          els.currentTitle.textContent=pageTitle;
 
-      async function getRandomArticleUrl(){try{const r=await fetch(`${W_API}?action=query&format=json&origin=*&list=random&rnnamespace=0&rnlimit=1`);const d=await r.json();const title=d?.query?.random?.[0]?.title;return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g,'_'))}`}catch{return null}}
-      async function setRandom(el){const u=await getRandomArticleUrl();if(u){el.value=u;
-        if(el===els.startUrl) els.startUrl_m.value=u;
-        if(el===els.targetUrl) els.targetUrl_m.value=u;
-        if(el===els.startUrl_m) els.startUrl.value=u;
-        if(el===els.targetUrl_m) els.targetUrl.value=u;
-      }}
-      els.randomStart.addEventListener('click',()=>setRandom(els.startUrl))
-      els.randomTarget.addEventListener('click',()=>setRandom(els.targetUrl))
-      els.randomStart_m.addEventListener('click',()=>setRandom(els.startUrl_m))
-      els.randomTarget_m.addEventListener('click',()=>setRandom(els.targetUrl_m))
+          if(state.playing && normalizeTitle(pageTitle)===normalizeTitle(state.targetTitle)){
+            setMessage(`<div class="win">You made it in ${state.count} clicks and ${els.timer.textContent}</div>`);
+            stopTimer();
+            state.playing=false;
+          } else if (state.playing){
+            setMessage('');
+          }
+        }catch(err){
+          setMessage('<div class="err">Could not load article. Check titles and try again.</div>');
+        }
+      }
+
+      function resetGame(){
+        stopTimer();
+        state={playing:false,originTitle:null,targetTitle:null,currentTitle:null,count:0,path:[],startTime:null,timerId:null};
+        els.clickCount.textContent='0';
+        els.steps.innerHTML='';
+        els.steps_m && (els.steps_m.innerHTML='');
+        els.article.innerHTML='<p class="muted">Enter two Wikipedia links and press Start game.</p>';
+        els.currentTitle.textContent='None';
+        els.timer.textContent='00:00';
+        setMessage('');
+      }
+
+      function renderPath(){
+        els.steps.innerHTML='';
+        state.path.forEach(step=>{
+          const li=document.createElement('li');
+          const a=document.createElement('a');
+          a.href=step.url; a.textContent=step.title; a.target='_blank'; a.rel='noopener';
+          li.appendChild(a);
+          els.steps.appendChild(li);
+        });
+        els.clickCount.textContent=String(state.count);
+      }
+
+      async function startByTitlesOrUrls(sInput,tInput){
+        const sUrl = ensureWikiUrlOrTitle(sInput);
+        const tUrl = ensureWikiUrlOrTitle(tInput);
+        const st = wikiTitleFromUrl(sUrl);
+        const tt = wikiTitleFromUrl(tUrl);
+        if(!st || !tt){
+          setMessage('<div class="err">Enter valid Wikipedia links or titles.</div>');
+          return;
+        }
+        state.originTitle=st;
+        state.targetTitle=tt;
+        state.path=[{title:normalizeTitle(st),url:wikiUrlFromTitle(st)}];
+        state.count=0;
+        els.clickCount.textContent='0';
+        els.steps.innerHTML='';
+        state.playing=true;
+        startTimer();
+        await loadArticle(st);
+      }
+
+      document.getElementById('desktopForm').addEventListener('submit',(e)=>{
+        e.preventDefault();
+        startByTitlesOrUrls(els.startUrl.value, els.targetUrl.value);
+      });
+      els.begin_m.addEventListener('click',()=>startByTitlesOrUrls(els.startUrl_m.value, els.targetUrl_m.value));
+      els.reset.addEventListener('click',resetGame);
+      els.reset_m.addEventListener('click',resetGame);
+
+      els.article.addEventListener('click',async e=>{
+        const a=e.target.closest('a'); if(!a) return;
+        const href=a.getAttribute('href'); if(!href) return;
+        if(href.startsWith('/wiki/')){
+          e.preventDefault();
+          if(!state.playing) return;
+          state.count+=1;
+          const next=decodeURIComponent(href.replace(/^\/wiki\//,''));
+          state.path.push({title:normalizeTitle(next),url:wikiUrlFromTitle(next)});
+          renderPath();
+          await loadArticle(next);
+        }
+      });
+
+      async function getRandomArticleUrl(){
+        try{
+          const r=await fetch(`${W_API}?action=query&format=json&origin=*&list=random&rnnamespace=0&rnlimit=1`);
+          if(!r.ok) throw new Error('random failed');
+          const d=await r.json();
+          const title=d?.query?.random?.[0]?.title;
+          if(!title) throw new Error('no title');
+          return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g,'_'))}`;
+        }catch{ return null; }
+      }
+
+      async function setRandom(el){
+        const u=await getRandomArticleUrl();
+        if(u){
+          el.value=u;
+          if(el===els.startUrl) els.startUrl_m.value=u;
+          if(el===els.targetUrl) els.targetUrl_m.value=u;
+          if(el===els.startUrl_m) els.startUrl.value=u;
+          if(el===els.targetUrl_m) els.targetUrl.value=u;
+        }
+      }
+      els.randomStart.addEventListener('click',()=>setRandom(els.startUrl));
+      els.randomTarget.addEventListener('click',()=>setRandom(els.targetUrl));
+      els.randomStart_m.addEventListener('click',()=>setRandom(els.startUrl_m));
+      els.randomTarget_m.addEventListener('click',()=>setRandom(els.targetUrl_m));
 
       function copyResults(){
-        if(!state.path.length){setMessage('<div class="err">No results yet.</div>');return}
-        const start=normalizeTitle(state.originTitle)
-        const target=normalizeTitle(state.targetTitle)
-        const challengeUrl=new URL(location.href)
-        challengeUrl.searchParams.set('start',state.originTitle)
-        challengeUrl.searchParams.set('target',state.targetTitle)
+        if(!state.path.length){ setMessage('<div class="err">No results yet.</div>'); return; }
+        const start=normalizeTitle(state.originTitle);
+        const target=normalizeTitle(state.targetTitle);
+        const challengeUrl=new URL(location.href);
+        challengeUrl.searchParams.set('start', state.originTitle);
+        challengeUrl.searchParams.set('target', state.targetTitle);
         const text=`Wikipedia Link Path Game Result
 
 From: ${start}
@@ -305,42 +427,65 @@ Path:
 ${state.path.map((s,i)=>`${i+1}. ${s.title} -> ${s.url}`).join('\n')}
 
 Challenge your friends:
-${challengeUrl.toString()}`
+${challengeUrl.toString()}`;
         navigator.clipboard.writeText(text)
           .then(()=>setMessage('<div class="win">Copied path and challenge link.</div>'))
-          .catch(()=>setMessage('<div class="err">Clipboard copy failed.</div>'))
+          .catch(()=>setMessage('<div class="err">Clipboard copy failed.</div>'));
       }
+
       function copyShareLink(){
-        const st=state.originTitle||wikiTitleFromUrl(els.startUrl.value)||wikiTitleFromUrl(els.startUrl_m.value)
-        const tt=state.targetTitle||wikiTitleFromUrl(els.targetUrl.value)||wikiTitleFromUrl(els.targetUrl_m.value)
-        if(!st||!tt){setMessage('<div class="err">Provide start and target first.</div>');return}
-        const u=new URL(location.href);u.searchParams.set('start',st);u.searchParams.set('target',tt);
+        const st=state.originTitle || wikiTitleFromUrl(ensureWikiUrlOrTitle(els.startUrl.value)) || wikiTitleFromUrl(ensureWikiUrlOrTitle(els.startUrl_m.value));
+        const tt=state.targetTitle || wikiTitleFromUrl(ensureWikiUrlOrTitle(els.targetUrl.value)) || wikiTitleFromUrl(ensureWikiUrlOrTitle(els.targetUrl_m.value));
+        if(!st || !tt){ setMessage('<div class="err">Provide start and target first.</div>'); return; }
+        const u=new URL(location.href);
+        u.searchParams.set('start', st);
+        u.searchParams.set('target', tt);
         navigator.clipboard.writeText(u.toString())
           .then(()=>setMessage('<div class="win">Copied challenge link.</div>'))
-          .catch(()=>setMessage('<div class="err">Clipboard copy failed.</div>'))
+          .catch(()=>setMessage('<div class="err">Clipboard copy failed.</div>'));
       }
-      els.shareResultsBtn.addEventListener('click',copyResults)
-      els.shareResultsBtn_m&&els.shareResultsBtn_m.addEventListener('click',copyResults)
-      els.shareLinkBtn.addEventListener('click',copyShareLink)
-      els.shareLinkBtn_m&&els.shareLinkBtn_m.addEventListener('click',copyShareLink)
 
-      async function undo(){if(!state.playing||state.path.length<=1)return;state.path.pop();state.count=Math.max(0,state.count-1);const last=state.path[state.path.length-1];renderPath();await loadArticle(last.title)}
-      async function restart(){if(!state.originTitle||!state.targetTitle)return;state.count=0;state.path=[{title:normalizeTitle(state.originTitle),url:wikiUrlFromTitle(state.originTitle)}];startTimer();await loadArticle(state.originTitle)}
-      els.undoBtn.addEventListener('click',undo)
-      els.undoBtn_m&&els.undoBtn_m.addEventListener('click',undo)
-      els.restartBtn.addEventListener('click',restart)
-      els.restartBtn_m&&els.restartBtn_m.addEventListener('click',restart)
+      els.shareResultsBtn.addEventListener('click',copyResults);
+      els.shareResultsBtn_m && els.shareResultsBtn_m.addEventListener('click',copyResults);
+      els.shareLinkBtn.addEventListener('click',copyShareLink);
+      els.shareLinkBtn_m && els.shareLinkBtn_m.addEventListener('click',copyShareLink);
 
-      // fixed auto start
-      (function(){
+      async function undo(){
+        if(!state.playing || state.path.length<=1) return;
+        state.path.pop();
+        state.count=Math.max(0,state.count-1);
+        const last=state.path[state.path.length-1];
+        renderPath();
+        await loadArticle(last.title);
+      }
+      async function restart(){
+        if(!state.originTitle || !state.targetTitle) return;
+        state.count=0;
+        state.path=[{title:normalizeTitle(state.originTitle),url:wikiUrlFromTitle(state.originTitle)}];
+        startTimer();
+        await loadArticle(state.originTitle);
+      }
+      els.undoBtn.addEventListener('click',undo);
+      els.undoBtn_m && els.undoBtn_m.addEventListener('click',undo);
+      els.restartBtn.addEventListener('click',restart);
+      els.restartBtn_m && els.restartBtn_m.addEventListener('click',restart);
+
+      (function autoStartFromQuery(){
         const p=new URLSearchParams(location.search);
-        const s=p.get('start');const t=p.get('target');
-        if(s&&t){
-          const su=`https://en.wikipedia.org/wiki/${s}`;
-          const tu=`https://en.wikipedia.org/wiki/${t}`;
-          els.startUrl.value=su;els.targetUrl.value=tu;
-          els.startUrl_m.value=su;els.targetUrl_m.value=tu;
-          handleStart(su,tu);
+        const sRaw=p.get('start');
+        const tRaw=p.get('target');
+        if(sRaw && tRaw){
+          // Use values exactly as provided in the URL
+          const sVal = sRaw;
+          const tVal = tRaw;
+          // Mirror to inputs with full URLs
+          const sUrl = ensureWikiUrlOrTitle(sVal);
+          const tUrl = ensureWikiUrlOrTitle(tVal);
+          els.startUrl.value = sUrl;
+          els.targetUrl.value = tUrl;
+          els.startUrl_m.value = sUrl;
+          els.targetUrl_m.value = tUrl;
+          startByTitlesOrUrls(sVal, tVal);
         }
       })();
     </script>
