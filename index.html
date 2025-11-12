@@ -17,10 +17,17 @@
       .buttons { display: flex; gap: 12px; }
       button { padding: 12px 16px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 600; }
       button.primary { background: #2b6fff; color: white; }
-      button.secondary { background: #eee; }
+      button.secondary { background: #eee; color: black; }
       button.share { background: #34c759; color: white; }
       button.warn { background: #ff9f0a; color: black; }
-      button.random { background: #2b6fff; color: white; }
+
+      /* Force Random buttons to blue with white text */
+      #randomStart,
+      #randomTarget {
+        background: #2b6fff !important;
+        color: #ffffff !important;
+      }
+
       main { display: grid; grid-template-columns: 2fr 1fr; min-height: 0; }
       .articlePane { border-right: 1px solid rgba(0,0,0,.1); min-height: 0; display: grid; grid-template-rows: auto 1fr; }
       .hud { padding: 12px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid rgba(0,0,0,.06); flex-wrap: wrap; }
@@ -49,14 +56,14 @@
             <label for="startUrl">Start article URL</label>
             <div class="input-row">
               <input id="startUrl" type="url" placeholder="https://en.wikipedia.org/wiki/Cat" required />
-              <button type="button" class="random" id="randomStart">Random</button>
+              <button type="button" id="randomStart">Random</button>
             </div>
           </div>
           <div class="form-group">
             <label for="targetUrl">Target article URL</label>
             <div class="input-row">
               <input id="targetUrl" type="url" placeholder="https://en.wikipedia.org/wiki/Quantum_mechanics" required />
-              <button type="button" class="random" id="randomTarget">Random</button>
+              <button type="button" id="randomTarget">Random</button>
             </div>
           </div>
           <div class="buttons">
