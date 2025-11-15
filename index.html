@@ -1,541 +1,439 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Schedule Viewer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2b6fff" />
+    <title>Wikipedia Link Path Game</title>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        color-scheme: light dark;
+        --blue: #2b6fff;
+        --green: #34c759;
+        --warn: #ff9f0a;
+        --border: rgba(0,0,0,.12);
+        --border-soft: rgba(0,0,0,.08);
+        --bg-soft: color-mix(in srgb, Canvas 92%, transparent);
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; padding: 0; background: Canvas; color: CanvasText; }
+      a { color: LinkText; }
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+      .wrap { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
 
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f5f5;
-      color: #222;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 16px;
-    }
-
-    .app {
-      width: 100%;
-      max-width: 720px;
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-    }
-
-    h1 {
-      font-size: 1.4rem;
-      margin-bottom: 12px;
-      text-align: center;
-    }
-
-    p.subtitle {
-      font-size: 0.95rem;
-      text-align: center;
-      margin-bottom: 20px;
-      color: #666;
-    }
-
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .label {
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    select {
-      flex: 1 1 180px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 0.95rem;
-      background: #fafafa;
-    }
-
-    .results {
-      margin-top: 10px;
-    }
-
-    .results h2 {
-      font-size: 1.1rem;
-      margin-bottom: 8px;
-    }
-
-    .card {
-      background: #fafafa;
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      border: 1px solid #e0e0e0;
-    }
-
-    .card strong {
-      display: block;
-      margin-bottom: 2px;
-    }
-
-    .meta {
-      font-size: 0.9rem;
-      color: #555;
-    }
-
-    .empty {
-      font-size: 0.95rem;
-      color: #777;
-      margin-top: 8px;
-    }
-
-    .tag {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      background: #e3f2fd;
-      color: #0d47a1;
-      margin-bottom: 4px;
-      margin-right: 6px;
-    }
-
-    @media (max-width: 480px) {
-      .app {
-        padding: 16px;
+      header {
+        position: sticky; top: 0; z-index: 20;
+        padding: 12px clamp(14px, 3vw, 22px);
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(6px);
+        background: var(--bg-soft);
+        display: flex; flex-direction: column; gap: 12px;
       }
 
-      h1 {
-        font-size: 1.2rem;
+      /* single controls drawer used on all sizes */
+      .controlsDrawer {
+        display: block;
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0,0,0,.06);
+        overflow: hidden;
+      }
+      .controlsDrawer summary {
+        list-style: none;
+        padding: 12px 16px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .controlsDrawer summary::-webkit-details-marker { display: none; }
+      .controlsBody {
+        padding: 10px 16px 16px 16px;
+        display: grid;
+        gap: 12px;
       }
 
-      .row {
-        flex-direction: column;
-        align-items: flex-start;
+      .form-group { display: flex; flex-direction: column; gap: 6px; }
+      label { font-size: 14px; opacity: .85; }
+      .input-row { display: flex; gap: 8px; }
+      input[type="url"] {
+        flex: 1;
+        padding: 14px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,.2);
+        font-size: 16px;
+        min-height: 44px;
       }
-
-      .label {
-        margin-bottom: 2px;
+      button {
+        padding: 12px 16px;
+        border: 0;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 16px;
+        min-height: 44px;
       }
+      button.primary { background: var(--blue); color: #fff; }
+      button.secondary { background: #eee; color: #000; }
+      button.share { background: var(--green); color: #fff; }
+      button.warn { background: var(--warn); color: #000; }
+      #randomStart, #randomTarget { background: var(--blue); color: #fff; }
 
-      select {
-        width: 100%;
+      .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+
+      main { display: grid; grid-template-columns: 3fr 1fr; min-height: 0; }
+      @media (max-width: 1024px) { main { grid-template-columns: 1fr; } }
+
+      .articlePane { border-right: 1px solid var(--border); min-height: 0; display: grid; grid-template-rows: auto 1fr; }
+      @media (max-width: 1024px) { .articlePane { border-right: 0; border-bottom: 1px solid var(--border); } }
+
+      .hud {
+        padding: 12px clamp(14px, 3vw, 22px);
+        display: flex; align-items: center; gap: 12px;
+        border-bottom: 1px solid var(--border-soft); flex-wrap: wrap;
       }
-    }
-  </style>
-</head>
-<body>
-  <div class="app">
-    <h1>Schedule viewer</h1>
-    <p class="subtitle">Select your name and day to see where you are scheduled</p>
+      .badge { display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border-radius: 999px; background: #f2f4f8; font-weight: 700; }
+      .status { font-size: 15px; opacity: .9; }
+      .timer { font-variant-numeric: tabular-nums; }
 
-    <div class="row">
-      <span class="label">I am</span>
-      <select id="personSelect">
-        <option value="">Select your name</option>
-      </select>
+      .frame { overflow: auto; padding: clamp(10px, 2.5vw, 22px); }
+      .frame > .article { max-width: 980px; margin: 0 auto; line-height: 1.55; }
+      .article img { max-width: 100%; height: auto; }
+
+      .sidebar { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+      .panel { padding: 12px clamp(14px, 3vw, 22px); border-bottom: 1px solid var(--border-soft); }
+      .list { overflow: auto; padding: 12px clamp(14px, 3vw, 22px); }
+      .list ol { margin: 0; padding: 0 0 0 20px; }
+      .muted { opacity: .7; }
+      .win { background: #e9fbe9; border: 1px solid #b6f0b6; color: #145214; padding: 10px 12px; border-radius: 10px; }
+      .err { background: #ffecec; border: 1px solid #ffc4c4; color: #7a0000; padding: 10px 12px; }
+
+      details.steps { border-top: 1px solid var(--border-soft); }
+      details.steps > summary {
+        list-style: none; cursor: pointer; padding: 12px clamp(14px, 3vw, 22px);
+        font-weight: 700;
+      }
+      details.steps[open] > summary { border-bottom: 1px solid var(--border-soft); }
+      details.steps > summary::-webkit-details-marker { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <!-- only one place for Start and Reset lives here -->
+        <details id="controls" class="controlsDrawer" open>
+          <summary>Game controls <span id="drawerChevron" aria-hidden="true">▾</span></summary>
+          <div class="controlsBody">
+            <div class="form-group">
+              <label for="startUrl">Start article URL or title</label>
+              <div class="input-row">
+                <input id="startUrl" type="url" placeholder="https://en.wikipedia.org/wiki/Cat or Cat" />
+                <button type="button" id="randomStart">Random</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="targetUrl">Target article URL or title</label>
+              <div class="input-row">
+                <input id="targetUrl" type="url" placeholder="https://en.wikipedia.org/wiki/Quantum_mechanics or Quantum mechanics" />
+                <button type="button" id="randomTarget">Random</button>
+              </div>
+            </div>
+            <div class="buttons">
+              <button class="primary" id="begin" type="button">Start game</button>
+              <button class="secondary" id="reset" type="button">Reset</button>
+              <button class="secondary" id="undoBtn" type="button">Undo</button>
+              <button class="warn" id="restartBtn" type="button">Restart</button>
+              <button class="share" id="shareResultsBtn" type="button">Copy path text</button>
+              <button class="primary" id="shareLinkBtn" type="button">Copy share link</button>
+            </div>
+          </div>
+        </details>
+      </header>
+
+      <main>
+        <section class="articlePane">
+          <div class="hud">
+            <div class="badge" id="clickCount">0</div>
+            <div class="status"><span class="muted">Current</span> <span id="currentTitle">None</span></div>
+            <div class="status">Time <span class="timer" id="timer">00:00</span></div>
+          </div>
+          <div class="frame" id="frame">
+            <div class="article" id="article"><p class="muted">Enter two Wikipedia links or titles and press Start game.</p></div>
+          </div>
+        </section>
+
+        <aside class="sidebar">
+          <div class="panel" id="msg"></div>
+          <details class="steps" open>
+            <summary>Steps</summary>
+            <div class="list"><ol id="steps"></ol></div>
+          </details>
+        </aside>
+      </main>
     </div>
 
-    <div class="row" id="dayRow" style="display:none;">
-      <span class="label">Today is</span>
-      <select id="daySelect">
-        <option value="">Select a day</option>
-        <option value="Monday">Monday</option>
-        <option value="Tuesday">Tuesday</option>
-        <option value="Wednesday">Wednesday</option>
-        <option value="Thursday">Thursday</option>
-      </select>
-    </div>
+    <script>
+      const W_API = "https://en.wikipedia.org/w/api.php";
 
-    <div class="row" id="areaRow" style="display:none;">
-      <span class="label">Area</span>
-      <select id="areaSelect">
-        <option value="">All areas</option>
-        <option value="Demo">Demo</option>
-        <option value="Challenge">Challenge</option>
-        <option value="Vault">Vault</option>
-        <option value="Speaker">Speaker</option>
-        <option value="Blacktap">Blacktap</option>
-        <option value="Blacktap social">Blacktap social</option>
-        <option value="Mission Control Master">Mission Control Master</option>
-        <option value="Ask an AI Expert">Ask an AI Expert</option>
-      </select>
-    </div>
+      const els = {
+        controls: document.getElementById('controls'),
+        drawerChevron: document.getElementById('drawerChevron'),
 
-    <div class="results" id="results"></div>
-  </div>
+        startUrl: document.getElementById('startUrl'),
+        targetUrl: document.getElementById('targetUrl'),
+        randomStart: document.getElementById('randomStart'),
+        randomTarget: document.getElementById('randomTarget'),
+        begin: document.getElementById('begin'),
+        reset: document.getElementById('reset'),
 
-  <script>
-    const schedule = [
-      // Monday 3 00 pm to 7 00 pm
-      { day: "Monday", person: "Chris Welles", role: "Demo", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Jacob Lake", role: "Demo", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Adam Hunter", role: "Demo", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Justin Perkins", role: "Demo", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Nicholas Russo", role: "Demo", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Jamie Slater", role: "Demo", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Brandon Algarin", role: "Demo", start: "3 00 pm", end: "7 00 pm" },
+        article: document.getElementById('article'),
+        steps: document.getElementById('steps'),
+        clickCount: document.getElementById('clickCount'),
+        currentTitle: document.getElementById('currentTitle'),
+        msg: document.getElementById('msg'),
+        timer: document.getElementById('timer'),
 
-      { day: "Monday", person: "Miko Paguyo", role: "Challenge", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Hoa Nguyen", role: "Challenge", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Don Bogert", role: "Challenge", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Vanessa Lam", role: "Challenge", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Eric Wing", role: "Challenge", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Yessenia Becerra", role: "Challenge", start: "3 00 pm", end: "7 00 pm" },
+        undoBtn: document.getElementById('undoBtn'),
+        restartBtn: document.getElementById('restartBtn'),
+        shareResultsBtn: document.getElementById('shareResultsBtn'),
+        shareLinkBtn: document.getElementById('shareLinkBtn')
+      };
 
-      { day: "Monday", person: "Erin Tomie", role: "Vault", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Ben Masso", role: "Vault", start: "3 00 pm", end: "7 00 pm" },
+      let state = { playing:false, originTitle:null, targetTitle:null, currentTitle:null, count:0, path:[], startTime:null, timerId:null };
 
-      { day: "Monday", person: "Marc Tabago", role: "Speaker", start: "3 00 pm", end: "7 00 pm" },
-      { day: "Monday", person: "Scarlett Menendez", role: "Speaker", start: "3 00 pm", end: "7 00 pm" },
+      function updateChevron(){ els.drawerChevron.textContent = els.controls.open ? '▾' : '▸'; }
+      els.controls.addEventListener('toggle', updateChevron); updateChevron();
 
-      // Monday Mission Control Master for the expo window
-      { day: "Monday", person: "Gerald Glasscock", role: "Mission Control Master", start: "3 00 pm", end: "7 00 pm" },
-
-      // Tuesday Mission Control Master
-      { day: "Tuesday", person: "Gerald Glasscock", role: "Mission Control Master", start: "9 30 am", end: "6 00 pm" },
-
-      // Wednesday Mission Control Master
-      { day: "Wednesday", person: "Gerald Glasscock", role: "Mission Control Master", start: "9 30 am", end: "6 00 pm" },
-
-      // Thursday Mission Control Master
-      { day: "Thursday", person: "Gerald Glasscock", role: "Mission Control Master", start: "9 30 am", end: "4 00 pm" },
-
-      // Ask an AI Expert Tuesday and Wednesday
-      { day: "Tuesday", person: "Fernando Tucci", role: "Ask an AI Expert", start: "8 00 am", end: "1 00 pm" },
-      { day: "Tuesday", person: "Ryan Duff", role: "Ask an AI Expert", start: "12 45 pm", end: "3 00 pm" },
-      { day: "Tuesday", person: "David Girard", role: "Ask an AI Expert", start: "3 00 pm", end: "8 00 pm" },
-
-      { day: "Wednesday", person: "David Girard", role: "Ask an AI Expert", start: "8 00 am", end: "1 00 pm" },
-      { day: "Wednesday", person: "Ryan Duff", role: "Ask an AI Expert", start: "12 45 pm", end: "3 00 pm" },
-      { day: "Wednesday", person: "Fernando Tucci", role: "Ask an AI Expert", start: "3 00 pm", end: "8 00 pm" },
-
-      // Tuesday Challenge
-      { day: "Tuesday", person: "Admir R", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Alejandro Garcia", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Angel Aranda", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Fiona Griffin", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Ikarashi Ryo", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-
-      { day: "Tuesday", person: "Amy McMahon", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Tuesday", person: "Don Bogert", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Tuesday", person: "Miko Paguyo", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Tuesday", person: "Vanessa Lam", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Tuesday", person: "Peter Foglesong", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-
-      { day: "Tuesday", person: "Sasaki Kenko", role: "Challenge", start: "1 45 pm", end: "6 00 pm" },
-
-      { day: "Tuesday", person: "Hoa Nguyen", role: "Challenge", start: "4 00 pm", end: "6 00 pm" },
-      { day: "Tuesday", person: "Jamie Slater", role: "Challenge", start: "4 00 pm", end: "6 00 pm" },
-      { day: "Tuesday", person: "Yessenia Becerra", role: "Challenge", start: "4 00 pm", end: "6 00 pm" },
-
-      // Blacktap Tuesday
-      { day: "Tuesday", person: "Jason Dablow", role: "Blacktap", start: "7 00 am", end: "9 15 am" },
-      { day: "Tuesday", person: "Eric Wing", role: "Blacktap", start: "7 00 am", end: "9 15 am" },
-      { day: "Tuesday", person: "Peter Foglesong", role: "Blacktap", start: "9 15 am", end: "11 00 am" },
-      { day: "Tuesday", person: "Jamie Slater", role: "Blacktap", start: "9 15 am", end: "11 00 am" },
-      { day: "Tuesday", person: "Adam Hunter", role: "Blacktap", start: "11 00 am", end: "4 00 pm" },
-      { day: "Tuesday", person: "Andre Fernandes", role: "Blacktap", start: "11 00 am", end: "4 00 pm" },
-      { day: "Tuesday", person: "Stefano Olivieri", role: "Blacktap", start: "4 00 pm", end: "6 15 pm" },
-      { day: "Tuesday", person: "Franz Fiorim", role: "Blacktap", start: "4 00 pm", end: "6 15 pm" },
-      { day: "Tuesday", person: "Justin Perkins", role: "Blacktap", start: "6 15 pm", end: "7 00 pm" },
-      { day: "Tuesday", person: "Jacob Lake", role: "Blacktap", start: "6 15 pm", end: "7 00 pm" },
-
-      // Demo Tuesday
-      { day: "Tuesday", person: "Brandon Wingard", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Chuck Pham", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Hiram Morlan", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Kush Mangat", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Ryan Duff", role: "Demo", start: "9 30 am", end: "12 45 pm" },
-      { day: "Tuesday", person: "Vitaliy Shtym", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Stefano Olivieri", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-
-      { day: "Tuesday", person: "Brandon Algarin", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Tuesday", person: "Chris Welles", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Tuesday", person: "Jacob Lake", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Tuesday", person: "Jason Dablow", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Tuesday", person: "Jay Kammerer", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Tuesday", person: "Justin Perkins", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Tuesday", person: "Nicholas Russo", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-
-      // Vault Tuesday
-      { day: "Tuesday", person: "Ben Masso", role: "Vault", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Erin Tomie", role: "Vault", start: "1 30 pm", end: "6 00 pm" },
-
-      // Speaker Tuesday
-      { day: "Tuesday", person: "Scarlett Menendez", role: "Speaker", start: "9 30 am", end: "1 45 pm" },
-      { day: "Tuesday", person: "Marc Tabago", role: "Speaker", start: "1 30 pm", end: "6 00 pm" },
-
-      // Tuesday Blacktap social
-      { day: "Tuesday", person: "Justin Perkins", role: "Blacktap social", start: "7 00 pm", end: "10 00 pm" },
-      { day: "Tuesday", person: "Jacob Lake", role: "Blacktap social", start: "7 00 pm", end: "10 00 pm" },
-      { day: "Tuesday", person: "Peter Foglesong", role: "Blacktap social", start: "7 00 pm", end: "10 00 pm" },
-      { day: "Tuesday", person: "Hoa Nguyen", role: "Blacktap social", start: "7 00 pm", end: "10 00 pm" },
-
-      // Wednesday Challenge
-      { day: "Wednesday", person: "Amy McMahon", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Don Bogert", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Miko Paguyo", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Sasaki Kenko", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Vanessa Lam", role: "Challenge", start: "9 30 am", end: "1 45 pm" },
-
-      { day: "Wednesday", person: "Admir R", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Wednesday", person: "Alejandro Garcia", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Wednesday", person: "Angel Aranda", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Wednesday", person: "Fiona Griffin", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Wednesday", person: "Hoa Nguyen", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-
-      { day: "Wednesday", person: "Ikarashi Ryo", role: "Challenge", start: "1 45 pm", end: "4 00 pm" },
-      { day: "Wednesday", person: "Ikarashi Ryo", role: "Challenge", start: "4 00 pm", end: "6 00 pm" },
-      { day: "Wednesday", person: "Peter Foglesong", role: "Challenge", start: "4 00 pm", end: "6 00 pm" },
-      { day: "Wednesday", person: "Jamie Slater", role: "Challenge", start: "4 00 pm", end: "6 00 pm" },
-      { day: "Wednesday", person: "Yessenia Becerra", role: "Challenge", start: "4 00 pm", end: "6 00 pm" },
-
-      // Blacktap Wednesday
-      { day: "Wednesday", person: "Chuck Pham", role: "Blacktap", start: "7 00 am", end: "9 15 am" },
-      { day: "Wednesday", person: "Jamie Slater", role: "Blacktap", start: "7 00 am", end: "9 15 am" },
-      { day: "Wednesday", person: "Jason Dablow", role: "Blacktap", start: "9 15 am", end: "11 00 am" },
-      { day: "Wednesday", person: "Eric Wing", role: "Blacktap", start: "9 15 am", end: "11 00 am" },
-      { day: "Wednesday", person: "Andre Fernandes", role: "Blacktap", start: "11 00 am", end: "4 00 pm" },
-      { day: "Wednesday", person: "Franz Fiorim", role: "Blacktap", start: "11 00 am", end: "4 00 pm" },
-      { day: "Wednesday", person: "Nicholas Russo", role: "Blacktap", start: "4 00 pm", end: "6 15 pm" },
-      { day: "Wednesday", person: "Stefano Olivieri", role: "Blacktap", start: "4 00 pm", end: "6 15 pm" },
-      { day: "Wednesday", person: "Justin Perkins", role: "Blacktap", start: "6 15 pm", end: "7 00 pm" },
-      { day: "Wednesday", person: "Jacob Lake", role: "Blacktap", start: "6 15 pm", end: "7 00 pm" },
-
-      // Demo Wednesday
-      { day: "Wednesday", person: "Brandon Algarin", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Chris Welles", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Chuck Pham", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Jay Kammerer", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Nicholas Russo", role: "Demo", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Ryan Duff", role: "Demo", start: "9 30 am", end: "12 45 pm" },
-      { day: "Wednesday", person: "Erin Tomie", role: "Vault", start: "9 30 am", end: "1 45 pm" },
-
-      { day: "Wednesday", person: "Adam Hunter", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Wednesday", person: "Brandon Wingard", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Wednesday", person: "Hiram Morlan", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Wednesday", person: "Kush Mangat", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Wednesday", person: "Vitaliy Shtym", role: "Demo", start: "1 30 pm", end: "6 00 pm" },
-      { day: "Wednesday", person: "Ben Masso", role: "Vault", start: "1 30 pm", end: "6 00 pm" },
-
-      // Speaker Wednesday
-      { day: "Wednesday", person: "Marc Tabago", role: "Speaker", start: "9 30 am", end: "1 45 pm" },
-      { day: "Wednesday", person: "Scarlett Menendez", role: "Speaker", start: "1 30 pm", end: "6 00 pm" },
-
-      // Wednesday Blacktap social
-      { day: "Wednesday", person: "Franz Fiorim", role: "Blacktap social", start: "7 00 pm", end: "10 00 pm" },
-      { day: "Wednesday", person: "Yessenia Becerra", role: "Blacktap social", start: "7 00 pm", end: "10 00 pm" },
-      { day: "Wednesday", person: "Ryan Duff", role: "Blacktap social", start: "7 00 pm", end: "10 00 pm" },
-      { day: "Wednesday", person: "Admir R", role: "Blacktap social", start: "7 00 pm", end: "10 00 pm" },
-
-      // Thursday Challenge
-      { day: "Thursday", person: "Don Bogert", role: "Challenge", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Eric Wing", role: "Challenge", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Jamie Slater", role: "Challenge", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Miko Paguyo", role: "Challenge", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Sasaki Kenko", role: "Challenge", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Vanessa Lam", role: "Challenge", start: "9 30 am", end: "11 30 am" },
-
-      { day: "Thursday", person: "Admir R", role: "Challenge", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Alejandro Garcia", role: "Challenge", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Amy McMahon", role: "Challenge", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Angel Aranda", role: "Challenge", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Fiona Griffin", role: "Challenge", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Ikarashi Ryo", role: "Challenge", start: "11 30 am", end: "4 00 pm" },
-
-      // Thursday Demo
-      { day: "Thursday", person: "Adam Hunter", role: "Demo", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Brandon Algarin", role: "Demo", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Chris Welles", role: "Demo", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Chuck Pham", role: "Demo", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Justin Perkins", role: "Demo", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Nicholas Russo", role: "Demo", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Ryan Duff", role: "Demo", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Erin Tomie", role: "Vault", start: "9 30 am", end: "11 30 am" },
-      { day: "Thursday", person: "Scarlett Menendez", role: "Speaker", start: "9 30 am", end: "11 30 am" },
-
-      { day: "Thursday", person: "Brandon Wingard", role: "Demo", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Hiram Morlan", role: "Demo", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Jason Dablow", role: "Demo", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Jay Kammerer", role: "Demo", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Kush Mangat", role: "Demo", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Stefano Olivieri", role: "Demo", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Vitaliy Shtym", role: "Demo", start: "11 30 am", end: "4 00 pm" },
-
-      { day: "Thursday", person: "Ben Masso", role: "Vault", start: "11 30 am", end: "4 00 pm" },
-      { day: "Thursday", person: "Marc Tabago", role: "Speaker", start: "11 30 am", end: "4 00 pm" }
-    ];
-
-    const SPECIAL_DIRECTOR = "Director of Microwave Technology";
-
-    const personSelect = document.getElementById("personSelect");
-    const dayRow = document.getElementById("dayRow");
-    const daySelect = document.getElementById("daySelect");
-    const areaRow = document.getElementById("areaRow");
-    const areaSelect = document.getElementById("areaSelect");
-    const resultsDiv = document.getElementById("results");
-
-    function initPersonOptions() {
-      const names = new Set();
-      schedule.forEach(entry => {
-        names.add(entry.person);
-      });
-
-      const sortedNames = Array.from(names).sort((a, b) => a.localeCompare(b));
-
-      const specialOption = document.createElement("option");
-      specialOption.value = SPECIAL_DIRECTOR;
-      specialOption.textContent = SPECIAL_DIRECTOR;
-      personSelect.appendChild(specialOption);
-
-      sortedNames.forEach(name => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        personSelect.appendChild(opt);
-      });
-    }
-
-    function renderResults() {
-      const person = personSelect.value;
-      const day = daySelect.value;
-      const area = areaSelect.value;
-      resultsDiv.innerHTML = "";
-
-      if (!person || !day) {
-        return;
+      function ensureWikiUrlOrTitle(input) {
+        if (!input) return null;
+        try {
+          const u = new URL(input);
+          if (u.hostname.endsWith('wikipedia.org') && u.pathname.includes('/wiki/')) return u.toString();
+        } catch {}
+        return wikiUrlFromTitle(input);
       }
 
-      if (person === SPECIAL_DIRECTOR) {
-        renderDirectorView(day, area);
-      } else {
-        renderPersonView(person, day);
-      }
-    }
-
-    function renderPersonView(person, day) {
-      const entries = schedule.filter(
-        e => e.person === person && e.day === day
-      );
-
-      if (entries.length === 0) {
-        const msg = document.createElement("p");
-        msg.className = "empty";
-        msg.textContent = person + " is not scheduled on " + day + ".";
-        resultsDiv.appendChild(msg);
-        return;
+      function wikiTitleFromUrl(url){
+        try{
+          const u=new URL(url);
+          if(u.hostname.endsWith('wikipedia.org')){
+            const p=u.pathname.split('/');
+            const i=p.indexOf('wiki');
+            if(i!==-1&&p[i+1]) return decodeURIComponent(p.slice(i+1).join('/'));
+          }
+        }catch{}
+        return null;
       }
 
-      const heading = document.createElement("h2");
-      heading.textContent = "Schedule for " + person + " on " + day;
-      resultsDiv.appendChild(heading);
-
-      entries.forEach(entry => {
-        const card = document.createElement("div");
-        card.className = "card";
-
-        const roleTag = document.createElement("span");
-        roleTag.className = "tag";
-        roleTag.textContent = entry.role;
-        card.appendChild(roleTag);
-
-        const time = document.createElement("div");
-        time.className = "meta";
-        time.textContent = entry.start + " to " + entry.end;
-        card.appendChild(time);
-
-        resultsDiv.appendChild(card);
-      });
-    }
-
-    function renderDirectorView(day, area) {
-      let entries = schedule.filter(e => e.day === day);
-
-      if (area) {
-        entries = entries.filter(e => e.role === area);
+      function wikiUrlFromTitle(t){
+        const withUnderscores = t.replace(/\s/g,'_');
+        return `https://en.wikipedia.org/wiki/${encodeURIComponent(withUnderscores)}`;
       }
 
-      entries.sort((a, b) => {
-        if (a.role === b.role) {
-          return a.person.localeCompare(b.person);
+      function normalizeTitle(t){
+        if(!t) return null;
+        const x=t.replace(/_/g,' ').trim();
+        return x.charAt(0).toUpperCase()+x.slice(1);
+      }
+
+      function setMessage(h,k=''){ els.msg.innerHTML=h||''; els.msg.className='panel '+k; }
+
+      function startTimer(){
+        state.startTime=Date.now();
+        state.timerId=setInterval(()=>{
+          const s=Math.floor((Date.now()-state.startTime)/1000);
+          const m=String(Math.floor(s/60)).padStart(2,'0');
+          const ss=String(s%60).padStart(2,'0');
+          els.timer.textContent=`${m}:${ss}`;
+        },250);
+      }
+      function stopTimer(){ if(state.timerId){ clearInterval(state.timerId); state.timerId=null; } }
+
+      async function loadArticle(t){
+        const n=normalizeTitle(t);
+        try{
+          const r=await fetch(`${W_API}?action=parse&format=json&origin=*&prop=text&page=${encodeURIComponent(n)}&redirects=`);
+          if(!r.ok) throw new Error('request failed');
+          const d=await r.json();
+          if(!d.parse || !d.parse.text || !d.parse.text['*']) throw new Error('no parse');
+          const html=d.parse.text['*'];
+          els.article.innerHTML=html;
+          const pageTitle=d.parse.title||n;
+          state.currentTitle=pageTitle;
+          els.currentTitle.textContent=pageTitle;
+
+          // convert in article links
+          const base = new URL('https://en.wikipedia.org');
+          els.article.querySelectorAll('a[href]').forEach(a=>{
+            const href=a.getAttribute('href');
+            if(!href) return;
+            if(href.startsWith('/wiki/')){
+              a.setAttribute('data-wiki-title', decodeURIComponent(href.replace(/^\/wiki\//,'')));
+            } else if (href.startsWith('#')) {
+            } else {
+              a.setAttribute('target','_blank'); a.setAttribute('rel','noopener');
+              try { a.href = new URL(href, base).href; } catch {}
+            }
+          });
+
+          if(state.playing && normalizeTitle(pageTitle)===normalizeTitle(state.targetTitle)){
+            setMessage(`<div class="win">You made it in ${state.count} clicks and ${els.timer.textContent}</div>`);
+            stopTimer();
+            state.playing=false;
+          } else if (state.playing){
+            setMessage('');
+          }
+        }catch(err){
+          setMessage('<div class="err">Could not load article. Check titles and try again.</div>');
         }
-        return a.role.localeCompare(b.role);
+      }
+
+      function resetGame(clearTargets=false){
+        stopTimer();
+        const keepStart = clearTargets ? null : state.originTitle;
+        const keepTarget = clearTargets ? null : state.targetTitle;
+        state={playing:false,originTitle:keepStart,targetTitle:keepTarget,currentTitle:null,count:0,path:[],startTime:null,timerId:null};
+        els.clickCount.textContent='0';
+        els.steps.innerHTML='';
+        els.article.innerHTML='<p class="muted">Enter two Wikipedia links or titles and press Start game.</p>';
+        els.currentTitle.textContent='None';
+        els.timer.textContent='00:00';
+        setMessage('');
+      }
+
+      function renderPath(){
+        els.steps.innerHTML='';
+        state.path.forEach(step=>{
+          const li=document.createElement('li');
+          const a=document.createElement('a');
+          a.href=step.url; a.textContent=step.title; a.target='_blank'; a.rel='noopener';
+          li.appendChild(a);
+          els.steps.appendChild(li);
+        });
+        els.clickCount.textContent=String(state.count);
+      }
+
+      async function startByInputs(sInput,tInput){
+        const sUrl = ensureWikiUrlOrTitle(sInput);
+        const tUrl = ensureWikiUrlOrTitle(tInput);
+        const st = wikiTitleFromUrl(sUrl);
+        const tt = wikiTitleFromUrl(tUrl);
+        if(!st || !tt){
+          setMessage('<div class="err">Enter valid Wikipedia links or titles.</div>');
+          return;
+        }
+        resetGame(false);
+        state.originTitle=st;
+        state.targetTitle=tt;
+        state.path=[{title:normalizeTitle(st),url:wikiUrlFromTitle(st)}];
+        state.count=0;
+        state.playing=true;
+        startTimer();
+        await loadArticle(st);
+      }
+
+      // only Start and Reset here
+      els.begin.addEventListener('click',()=>startByInputs(els.startUrl.value, els.targetUrl.value));
+      els.reset.addEventListener('click',()=>resetGame(false));
+
+      // article navigation click
+      els.article.addEventListener('click',async e=>{
+        const a=e.target.closest('a'); if(!a) return;
+        const t=a.getAttribute('data-wiki-title'); if(!t) return;
+        e.preventDefault();
+        if(!state.playing) return;
+        state.count+=1;
+        state.path.push({title:normalizeTitle(t),url:wikiUrlFromTitle(t)});
+        renderPath();
+        await loadArticle(t);
       });
 
-      const heading = document.createElement("h2");
-      heading.textContent = "Full schedule for " + day + (area ? " in " + area : "");
-      resultsDiv.appendChild(heading);
-
-      if (entries.length === 0) {
-        const msg = document.createElement("p");
-        msg.className = "empty";
-        msg.textContent = "No entries found for this day.";
-        resultsDiv.appendChild(msg);
-        return;
+      async function getRandomArticleUrl(){
+        try{
+          const r=await fetch(`${W_API}?action=query&format=json&origin=*&list=random&rnnamespace=0&rnlimit=1`);
+          if(!r.ok) throw new Error('random failed');
+          const d=await r.json();
+          const title=d?.query?.random?.[0]?.title;
+          if(!title) throw new Error('no title');
+          return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g,'_'))}`;
+        }catch{ return null; }
       }
-
-      entries.forEach(entry => {
-        const card = document.createElement("div");
-        card.className = "card";
-
-        const title = document.createElement("strong");
-        title.textContent = entry.person;
-        card.appendChild(title);
-
-        const roleTag = document.createElement("span");
-        roleTag.className = "tag";
-        roleTag.textContent = entry.role;
-        card.appendChild(roleTag);
-
-        const time = document.createElement("div");
-        time.className = "meta";
-        time.textContent = entry.start + " to " + entry.end;
-        card.appendChild(time);
-
-        resultsDiv.appendChild(card);
-      });
-    }
-
-    personSelect.addEventListener("change", () => {
-      const person = personSelect.value;
-      if (person) {
-        dayRow.style.display = "flex";
-      } else {
-        dayRow.style.display = "none";
-        daySelect.value = "";
-        areaRow.style.display = "none";
-        areaSelect.value = "";
-        resultsDiv.innerHTML = "";
-        return;
+      async function setRandom(el){
+        const u=await getRandomArticleUrl();
+        if(u){ el.value=u; }
       }
+      els.randomStart.addEventListener('click',()=>setRandom(els.startUrl));
+      els.randomTarget.addEventListener('click',()=>setRandom(els.targetUrl));
 
-      if (person === SPECIAL_DIRECTOR) {
-        areaRow.style.display = "flex";
-      } else {
-        areaRow.style.display = "none";
-        areaSelect.value = "";
+      function copyResults(){
+        if(!state.path.length){ setMessage('<div class="err">No results yet.</div>'); return; }
+        const start=normalizeTitle(state.originTitle);
+        const target=normalizeTitle(state.targetTitle);
+        const challengeUrl=new URL(location.href);
+        challengeUrl.searchParams.set('start', state.originTitle);
+        challengeUrl.searchParams.set('target', state.targetTitle);
+        const text=`Wikipedia Link Path Game Result
+
+From: ${start}
+To: ${target}
+Clicks: ${state.count}
+Time: ${els.timer.textContent}
+
+Path:
+${state.path.map((s,i)=>`${i+1}. ${s.title} -> ${s.url}`).join('\n')}
+
+Challenge your friends:
+${challengeUrl.toString()}`;
+        navigator.clipboard.writeText(text)
+          .then(()=>setMessage('<div class="win">Copied path and challenge link.</div>'))
+          .catch(()=>setMessage('<div class="err">Clipboard copy failed.</div>'));
       }
+      function copyShareLink(){
+        const st=state.originTitle || wikiTitleFromUrl(ensureWikiUrlOrTitle(els.startUrl.value));
+        const tt=state.targetTitle || wikiTitleFromUrl(ensureWikiUrlOrTitle(els.targetUrl.value));
+        if(!st || !tt){ setMessage('<div class="err">Provide start and target first.</div>'); return; }
+        const u=new URL(location.href); u.searchParams.set('start',st); u.searchParams.set('target',tt);
+        navigator.clipboard.writeText(u.toString())
+          .then(()=>setMessage('<div class="win">Copied challenge link.</div>'))
+          .catch(()=>setMessage('<div class="err">Clipboard copy failed.</div>'));
+      }
+      els.shareResultsBtn.addEventListener('click',copyResults);
+      els.shareLinkBtn.addEventListener('click',copyShareLink);
 
-      resultsDiv.innerHTML = "";
-      renderResults();
-    });
+      async function undo(){
+        if(!state.playing || state.path.length<=1) return;
+        state.path.pop();
+        state.count=Math.max(0,state.count-1);
+        const last=state.path[state.path.length-1];
+        renderPath();
+        await loadArticle(last.title);
+      }
+      async function restart(){
+        if(!state.originTitle || !state.targetTitle) return;
+        state.count=0;
+        state.path=[{title:normalizeTitle(state.originTitle),url:wikiUrlFromTitle(state.originTitle)}];
+        startTimer();
+        await loadArticle(state.originTitle);
+      }
+      els.undoBtn.addEventListener('click',undo);
+      els.restartBtn.addEventListener('click',restart);
 
-    daySelect.addEventListener("change", renderResults);
-    areaSelect.addEventListener("change", renderResults);
-
-    initPersonOptions();
-  </script>
-</body>
+      (function autoStartFromQuery(){
+        const p=new URLSearchParams(location.search);
+        const sRaw=p.get('start');
+        const tRaw=p.get('target');
+        if(sRaw && tRaw){
+          const sUrl = ensureWikiUrlOrTitle(sRaw);
+          const tUrl = ensureWikiUrlOrTitle(tRaw);
+          els.startUrl.value = sUrl;
+          els.targetUrl.value = tUrl;
+          startByInputs(sRaw, tRaw);
+        }
+      })();
+    </script>
+  </body>
 </html>
