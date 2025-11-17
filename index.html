@@ -223,7 +223,7 @@
       <header>
         <!-- only one place for Start and Reset lives here -->
         <details id="controls" class="controlsDrawer" open>
-          <summary>Game controls <span id="drawerChevron" aria-hidden="true">▾</span></summary>
+          <summary>Game controls <span id="controlsTarget"></span><span id="drawerChevron" aria-hidden="true">▾</span></summary>
           <div class="controlsBody">
             <div class="form-group">
               <label for="startUrl">Start article URL or title</label>
@@ -286,6 +286,7 @@
       const els = {
         controls: document.getElementById('controls'),
         drawerChevron: document.getElementById('drawerChevron'),
+        controlsTarget: document.getElementById('controlsTarget'),
 
         startUrl: document.getElementById('startUrl'),
         targetUrl: document.getElementById('targetUrl'),
@@ -408,6 +409,7 @@
         els.article.innerHTML='<p class="muted">Enter two Wikipedia links or titles and press Start game.</p>';
         els.currentTitle.textContent='None';
         els.targetTitleDisplay.textContent = keepTarget ? normalizeTitle(keepTarget) : 'None';
+        els.controlsTarget.textContent = keepTarget ? `Target: ${normalizeTitle(keepTarget)} ` : '';
         els.timer.textContent='00:00';
         setMessage('');
       }
@@ -437,6 +439,7 @@
         state.originTitle=st;
         state.targetTitle=tt;
         els.targetTitleDisplay.textContent=normalizeTitle(tt);
+        els.controlsTarget.textContent=`Target: ${normalizeTitle(tt)} `;
         state.path=[{title:normalizeTitle(st),url:wikiUrlFromTitle(st)}];
         state.count=0;
         state.playing=true;
