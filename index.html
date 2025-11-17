@@ -262,6 +262,7 @@
           <div class="hud">
             <div class="badge" id="clickCount">0</div>
             <div class="status"><span class="muted">Current</span> <span id="currentTitle">None</span></div>
+            <div class="status"><span class="muted">Target</span> <span id="targetTitleDisplay">None</span></div>
             <div class="status">Time <span class="timer" id="timer">00:00</span></div>
           </div>
           <div class="frame" id="frame">
@@ -297,6 +298,7 @@
         steps: document.getElementById('steps'),
         clickCount: document.getElementById('clickCount'),
         currentTitle: document.getElementById('currentTitle'),
+        targetTitleDisplay: document.getElementById('targetTitleDisplay'),
         msg: document.getElementById('msg'),
         timer: document.getElementById('timer'),
 
@@ -405,6 +407,7 @@
         els.steps.innerHTML='';
         els.article.innerHTML='<p class="muted">Enter two Wikipedia links or titles and press Start game.</p>';
         els.currentTitle.textContent='None';
+        els.targetTitleDisplay.textContent = keepTarget ? normalizeTitle(keepTarget) : 'None';
         els.timer.textContent='00:00';
         setMessage('');
       }
@@ -433,6 +436,7 @@
         resetGame(false);
         state.originTitle=st;
         state.targetTitle=tt;
+        els.targetTitleDisplay.textContent=normalizeTitle(tt);
         state.path=[{title:normalizeTitle(st),url:wikiUrlFromTitle(st)}];
         state.count=0;
         state.playing=true;
