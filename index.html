@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#2b6fff" />
-    <title>Wikipedia Link Path Game</title>
+    <title>WikiSix</title>
     <style>
       :root {
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
@@ -18,10 +18,88 @@
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; }
-      body { margin: 0; padding: 0; background: Canvas; color: CanvasText; }
+
+      /* Prevent pull-to-refresh on mobile browsers */
+      html {
+        overscroll-behavior-y: none;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background: Canvas;
+        color: CanvasText;
+        overscroll-behavior-y: none;
+      }
       a { color: LinkText; }
 
-      .wrap { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+      .wrap { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; }
+
+      /* Game description section */
+      .description {
+        background: var(--bg-soft);
+        border-bottom: 1px solid var(--border);
+      }
+      .description summary {
+        list-style: none;
+        padding: 16px clamp(14px, 3vw, 22px);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .description summary::-webkit-details-marker { display: none; }
+      .description summary h1 {
+        margin: 0;
+        font-size: clamp(20px, 4vw, 26px);
+        font-weight: 800;
+        color: var(--blue);
+      }
+      .description .chevron {
+        font-size: 20px;
+        transition: transform 0.2s;
+        display: none; /* Hidden by default on desktop */
+      }
+      .description[open] .chevron {
+        transform: rotate(180deg);
+      }
+      .description-content {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 0 clamp(14px, 3vw, 22px) 16px clamp(14px, 3vw, 22px);
+      }
+      .description-content .tagline {
+        margin: 0 0 12px 0;
+        font-size: 16px;
+        opacity: .9;
+      }
+      .description-content ul {
+        margin: 8px 0 0 0;
+        padding-left: 20px;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      .description-content li {
+        margin: 4px 0;
+      }
+
+      /* Make description collapsible on mobile only */
+      @media (max-width: 768px) {
+        .description .chevron {
+          display: block;
+        }
+      }
+
+      /* On desktop, keep it always open and non-interactive */
+      @media (min-width: 769px) {
+        .description summary {
+          cursor: default;
+          padding-bottom: 8px;
+        }
+        .description-content {
+          padding-top: 0;
+        }
+      }
 
       header {
         position: sticky; top: 0; z-index: 20;
@@ -100,7 +178,11 @@
       .status { font-size: 15px; opacity: .9; }
       .timer { font-variant-numeric: tabular-nums; }
 
-      .frame { overflow: auto; padding: clamp(10px, 2.5vw, 22px); }
+      .frame {
+        overflow: auto;
+        padding: clamp(10px, 2.5vw, 22px);
+        overscroll-behavior-y: contain; /* Contain scroll within frame */
+      }
       .frame > .article { max-width: 980px; margin: 0 auto; line-height: 1.55; }
       .article img { max-width: 100%; height: auto; }
 
@@ -123,6 +205,21 @@
   </head>
   <body>
     <div class="wrap">
+      <details class="description" open>
+        <summary>
+          <h1>WikiSix</h1>
+          <span class="chevron" aria-hidden="true">▾</span>
+        </summary>
+        <div class="description-content">
+          <p class="tagline">Navigate from one Wikipedia article to another using only in-page links. Can you find the shortest path?</p>
+          <ul>
+            <li>Enter a start and target Wikipedia article</li>
+            <li>Click only article links inside each page to move toward your target</li>
+            <li>Each click increases your counter - try to reach your goal in the fewest steps!</li>
+            <li>Your path and time are recorded so you can share your results</li>
+          </ul>
+        </div>
+      </details>
       <header>
         <!-- only one place for Start and Reset lives here -->
         <details id="controls" class="controlsDrawer" open>
@@ -147,8 +244,14 @@
               <button class="secondary" id="reset" type="button">Reset</button>
               <button class="secondary" id="undoBtn" type="button">Undo</button>
               <button class="warn" id="restartBtn" type="button">Restart</button>
-              <button class="share" id="shareResultsBtn" type="button">Copy path text</button>
+              <button class="share" id="shareResultsBtn" type="button">Share results</button>
               <button class="primary" id="shareLinkBtn" type="button">Copy share link</button>
+            </div>
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="includePathToggle" checked />
+                <span>Include my path in shared results (uncheck to hide solution)</span>
+              </label>
             </div>
           </div>
         </details>
@@ -200,7 +303,8 @@
         undoBtn: document.getElementById('undoBtn'),
         restartBtn: document.getElementById('restartBtn'),
         shareResultsBtn: document.getElementById('shareResultsBtn'),
-        shareLinkBtn: document.getElementById('shareLinkBtn')
+        shareLinkBtn: document.getElementById('shareLinkBtn'),
+        includePathToggle: document.getElementById('includePathToggle')
       };
 
       let state = { playing:false, originTitle:null, targetTitle:null, currentTitle:null, count:0, path:[], startTime:null, timerId:null };
@@ -376,7 +480,12 @@
         const challengeUrl=new URL(location.href);
         challengeUrl.searchParams.set('start', state.originTitle);
         challengeUrl.searchParams.set('target', state.targetTitle);
-        const text=`Wikipedia Link Path Game Result
+
+        const includePath = els.includePathToggle.checked;
+
+        let text;
+        if (includePath) {
+          text=`WikiSix Result
 
 From: ${start}
 To: ${target}
@@ -388,8 +497,19 @@ ${state.path.map((s,i)=>`${i+1}. ${s.title} -> ${s.url}`).join('\n')}
 
 Challenge your friends:
 ${challengeUrl.toString()}`;
+        } else {
+          text=`WikiSix Challenge
+
+From: ${start}
+To: ${target}
+
+I completed this in ${state.count} clicks and ${els.timer.textContent}. Can you beat my score?
+
+${challengeUrl.toString()}`;
+        }
+
         navigator.clipboard.writeText(text)
-          .then(()=>setMessage('<div class="win">Copied path and challenge link.</div>'))
+          .then(()=>setMessage('<div class="win">Copied results to clipboard!</div>'))
           .catch(()=>setMessage('<div class="err">Clipboard copy failed.</div>'));
       }
       function copyShareLink(){
@@ -433,6 +553,33 @@ ${challengeUrl.toString()}`;
           els.targetUrl.value = tUrl;
           startByInputs(sRaw, tRaw);
         }
+      })();
+
+      // Fallback for older iOS Safari (< 16) that doesn't support overscroll-behavior
+      (function preventPullToRefreshFallback() {
+        // Check if overscroll-behavior is supported
+        if (CSS.supports('overscroll-behavior', 'none')) {
+          return; // Native support, no fallback needed
+        }
+
+        let lastTouchY = 0;
+        let preventPullToRefresh = false;
+
+        document.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+          lastTouchY = e.touches[0].clientY;
+          preventPullToRefresh = window.pageYOffset === 0;
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+          const touchY = e.touches[0].clientY;
+          const touchYDelta = touchY - lastTouchY;
+          lastTouchY = touchY;
+
+          if (preventPullToRefresh && touchYDelta > 0) {
+            e.preventDefault();
+          }
+        }, { passive: false });
       })();
     </script>
   </body>
